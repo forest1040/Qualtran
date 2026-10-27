@@ -1,0 +1,204 @@
+\chapter{弱非線形条件と振幅規格化}
+\begin{chaptergoal}
+\cgitem $R_P$ をノルムの微分不等式から解釈する。\\
+\cgitem $R_P<1$ が十分条件である意味を理解する。\\
+\cgitem Lyapunov変換とbar座標への規格化を使い分ける。
+\end{chaptergoal}
+
+\section{解の安定性と近似の収束を分けて考える}
+これから行う評価には二つの段階がある。
+まず非線形ODE自身の解が、初期状態の周りの一定の球の外へ増大せず、時間とともに減衰することを示す。
+次に、その性質と高次テンソルの規格化を用い、Carleman打ち切り次数を増やすと近似誤差が小さくなることを示す。
+\[
+\boxed{\text{非線形解の大きさを制御する}}
+\quad\longrightarrow\quad
+\boxed{\text{高次打ち切り誤差を制御する}}
+\]
+安定な非線形解が存在することと、ある打ち切り近似がその解へ収束することは同じ命題ではない。
+本章は前者と規格化・有限階層の散逸性を、第5章は誤差伝播と後者の評価を扱う。
+中心となる十分条件は $R_P<1$ だが、全階層の収束保証では、さらに規格化などの仮定を揃える必要がある。
+
+\section{非線形性と散逸の比}
+$q(t)=\normtwo{\tu(t)}$、$b=\normtwo{\widetilde F_2}$ とおく。
+行列の $2$ ノルムは最大特異値であり、成分の二乗和の平方根（Frobeniusノルム）とは区別する。
+式\eqref{eq:energycubic}のエネルギー微分を、ノルム $q$ で書き直すと
+\begin{align*}
+\frac12\frac{\dd}{\dd t}q^2
+={}&\operatorname{Re}(\tu^\dagger\widetilde F_1\tu)\\
+&+\operatorname{Re}\{\tu^\dagger\widetilde F_2(\tu\otimes\tu)\}.
+\end{align*}
+第1項は $-\nuu q^2$ に等しい。
+第2項にはCauchy--Schwarz不等式と作用素ノルムの定義を使い、
+\begin{align*}
+\left|\tu^\dagger\widetilde F_2(\tu\otimes\tu)\right|
+&\leq\normtwo{\tu}\,\normtwo{\widetilde F_2}\,
+\normtwo{\tu\otimes\tu}\\
+&=bq^3
+\end{align*}
+と評価する。ここでテンソル積の性質 $\normtwo{\tu\otimes\tu}=q^2$ を使った。
+従って $\tfrac12\dd(q^2)/\dd t\leq-\nuu q^2+bq^3$ となり、$q>0$ なら $q$ で割って
+\begin{equation}
+\dot q\leq-\nuu q+bq^2.
+\label{eq:riccatiineq}
+\end{equation}
+$q=0$ は平衡であり、右辺が多項式であるこのODEの解の一意性により、そのままゼロを保つ。
+微分不等式の右辺は
+\[
+q(-\nuu+bq)
+=\underbrace{-\nuu q}_{\text{線形散逸}}
++\underbrace{bq^2}_{\text{非線形作用の上界}}
+\]
+なので、$bq<\nuu$ の範囲では散逸が上界を上回る。
+初期ノルムを $q_0=q(0)$ とおき、ここで
+\begin{equation}
+\boxed{R_P=\frac{bq(0)}{\nuu}}
+\label{eq:rp}
+\end{equation}
+を導入する。$R_P<1$ なら、$q=q(0)$ の境界で右辺が負になるため、この球の内部が保たれる。
+よって $q(t)\leq q(0)$ を再び代入すると
+\begin{align}
+q(t)&\leq q(0)\exp[-\nuu(1-R_P)t],\\
+\frac{\mathcal F(t)}{\mathcal F(0)}&\leq\exp[-2\nuu(1-R_P)t].
+\label{eq:energybound}
+\end{align}
+これが既存のエネルギー図に描かれている保守的な上界である。
+$R_P$ が小さいほど強い減衰を保証し、1へ近づくほど保証される減衰率は小さくなる。
+$bq^2$ は全入力方向を考えた上界であり、非線形項が実際に常に増幅に働くという意味ではない。
+
+さらに比較方程式 $\dot y=-\nuu y+by^2$ を直接解くと
+\begin{equation}
+q(t)\leq\frac{q(0)\ee^{-\nuu t}}
+{1-R_P(1-\ee^{-\nuu t})}\qquad (R_P<1)
+\label{eq:sharperbound}
+\end{equation}
+も得られる。式\eqref{eq:energybound}は扱いやすさを優先した評価であり、実際の減衰が上界より速くても矛盾しない。
+
+\section{十分条件の外側で何が言えるか}
+$R_P\geq1$ では上の不変球による議論が使えない。
+しかし $bq^2$ は全ての状態に対する最悪の上界であり、実際の軌道では非線形項の相殺や方向の効果がある。
+したがって $R_P\geq1$ は、非線形解の発散、有限Carleman近似の失敗、あるいは物理的な強乱流の発生を意味しない。
+逆に、一つの初期値が有限時間で減衰しても、全ての初期値に対する保証は得られない。
+
+また $R_P$ は初期振幅だけでなく $N_F,N_H,L,\tau,\nuu$ に依存する。
+実装の \codeinline{initial_state_for_r()} は固定テンプレート $\uu_{\mathrm{temp}}$ に対し
+\[
+\uu_0=\frac{R_{\mathrm{target}}\nuu}
+{\normtwo{\widetilde F_2}\normtwo{S\uu_{\mathrm{temp}}}}\uu_{\mathrm{temp}}
+\]
+として目標値へ合わせる。物理パラメータを変えても $R_P$ を固定する掃引では、一般に物理的初期振幅も変わる。
+
+\section{高次テンソルを制御するbar座標}
+Lyapunov変換に続けて、非ゼロの初期値に対し
+\begin{equation}
+\bu=c\tu,\qquad c=\frac{1+R_{\mathrm{thr}}}{2\normtwo{\tu_0}},
+\qquad 0<R_{\mathrm{thr}}<1
+\label{eq:bar}
+\end{equation}
+と規格化する。このとき
+\begin{equation}
+\normtwo{\bu_0}=\frac{1+R_{\mathrm{thr}}}2<1,\quad
+\overline F_1=\widetilde F_1,\quad
+\overline F_2=\widetilde F_2/c.
+\end{equation}
+この規格化は $\normtwo{\bu^{\otimes j}}=\normtwo{\bu}^j$ を通じて高次成分の重みを制御する。
+一方、
+\[
+\frac{\normtwo{\overline F_2}\normtwo{\bu_0}}{\nuu}
+=\frac{\normtwo{\widetilde F_2}\normtwo{\tu_0}}{\nuu}=R_P
+\]
+なので、規格化そのものは非線形性と散逸の比を改善しない。
+理論適用時に $R_P\leq R_{\mathrm{thr}}<1$ と選び、$r=(1+R_{\mathrm{thr}})/2$ とおけば、
+$\normtwo{\bu(t)}\leq r<1$ なので
+\[
+\normtwo{\bu(t)^{\otimes j}}=\normtwo{\bu(t)}^j\leq r^j.
+\]
+高次成分自体は小さくなるが、これだけでは有限階層の誤差収束は証明できない。
+階層間の結合が、打ち切りにより生じた誤差をどれだけ増幅するかも評価する必要がある。
+
+
+提供資料の論文説明では、定理の適用時に $R_P\leq R_{\mathrm{thr}}<1$ を満たす閾値を選ぶ。
+現行コードは $R_{\mathrm{thr}}=0.8$ を固定し、全ケースで $\normtwo{\bu_0}=0.9$ にする。
+$R_P=1.2$ にも計算上の変換を施すが、この場合は上述の定理条件の外にある。
+実装関数は $0<R_{\mathrm{thr}}<1$ のみを検査し、$R_P\leq R_{\mathrm{thr}}$ は検査しない。
+
+\begin{warningbox}
+$R_P$ は系と初期状態から計算する量、$R_{\mathrm{thr}}$ は規格化に用いる設定値である。
+$R_{\mathrm{thr}}$ を下げると全階層誤差の数値が変わりうるが、それには測定座標の重みの変更も含まれる。
+同じ物理状態に対する第1セクターの改善と、同じ意味で比較しない。
+\end{warningbox}
+
+\section{規格化された有限Carleman行列の散逸性}
+第5章で構成する有限Carleman行列を $A_C$ と書く。
+ここでは、その全ブロックをbar座標の $\overline F_1,\overline F_2$ で作ったものを考える。
+$R_P\leq R_{\mathrm{thr}}<1$ の仮定の下で
+\[
+\bar b=\normtwo{\overline F_2}=\frac bc
+=\frac{2\nuu R_P}{1+R_{\mathrm{thr}}}<\nuu
+\]
+となる。初期ノルムを小さくするだけでなく、階層の二次結合も散逸より弱くなる規格化である。
+
+各次数 $j$ の対角ブロックは、線形作用のKronecker和なので
+\[
+\frac{A_{j,j}+A_{j,j}^\dagger}{2}=-j\nuu I,
+\qquad \normtwo{A_{j,j+1}}\leq j\bar b
+\]
+を満たす。
+有限階層の任意のベクトル $\bm v=(\bm v_1,\ldots,\bm v_N)$ に対し、$s_j=\normtwo{\bm v_j}$ と置くと
+\begin{align*}
+\operatorname{Re}(\bm v^\dagger A_C\bm v)
+&\leq-\nuu\sum_{j=1}^{N}j s_j^2
++\bar b\sum_{j=1}^{N-1}j s_js_{j+1}\\
+&\leq\sum_{j=1}^{N}\left[-j\nuu+\left(j-\frac12\right)\bar b\right]s_j^2\\
+&\leq-\left(\nuu-\frac{\bar b}{2}\right)\sum_{j=1}^{N}s_j^2.
+\end{align*}
+2行目では $2s_js_{j+1}\leq s_j^2+s_{j+1}^2$ を使い、最上位の存在しない結合も上界として加えた。
+$N=1$ でも同じ上界は成り立つ。
+$\bar b<\nuu$ より、$\delta=\nuu-\bar b/2$ とすれば
+\[
+\boxed{\mu_2(A_C)\leq-\delta<-\frac{\nuu}{2}<0},
+\qquad \normtwo{\ee^{tA_C}}\leq\ee^{-\delta t}
+\]
+を得る。これは全ての有限次数について成り立つ、保守的なブロックノルム評価である。
+$R_P=1.2$ など定理の条件外で単にbar変換しただけの場合には、この議論をそのまま適用しない。
+次章では、この指数作用の減衰を使って誤差の伝播を評価する。
+\label{sec:finite-c-contractivity}
+
+\section{数値実験で十分条件を判定する手順}
+\begin{enumerate}
+\item $N_F,N_H,\nuu,\tau,L$ と物理的な初期状態 $\uu_0$ を決め、$F_1,F_2$ を構成する。
+\item 明示式で $P$ を作り、Lyapunov等式の残差を確認する。
+\item $\widetilde F_1,\widetilde F_2$ を作り、$\gamma=-\mu_2(\widetilde F_1)>0$ を確認する。本モデルでは $\gamma=\nuu$ である。
+\item $b=\normtwo{\widetilde F_2}$ を求める。小規模の密行列なら最大特異値をSVDで計算できる。
+\item $q_0=\normtwo{P^{1/2}\uu_0}$ を計算し、$R_P=bq_0/\gamma$ を判定する。
+\item $R_P<1$ なら、$R_P\leq R_{\mathrm{thr}}<1$ を満たす閾値を選び、bar座標で規格化する。
+\item 第5章のような、対象とする誤差と全ての定数を含む上界から次数 $N_C$ を選ぶ。漸近式 $O(\log(1/\epsilon_C))$ だけでは具体的な整数次数は決まらない。
+\end{enumerate}
+
+保存実験の $\nuu=0.2$、$b\simeq0.3257350079$ を使えば
+\[
+\boxed{\normtwo{\tu_0}<\frac{0.2}{0.3257350079}\simeq0.6140}
+\]
+が十分条件となる。この数値は固定した基底数・物理パラメータに対するものである。
+同じ $P,F_2,\uu_0$ を保って $\nuu$ を小さくすれば $R_P$ は大きくなり、この保証は厳しくなる。
+目標 $R_P$ に合わせて初期振幅も変える既存の実験とは、比較条件を区別する。
+
+\section{保証境界と実測収束、構造を使う改善の可能性}
+$R_P=1$ は、この十分条件が使える範囲の境界であり、実際のCarleman収束の普遍的な境界ではない。
+第6章の $R_P=1.2$ の保存結果では、$N_C=1$ から4へ増やすと第1セクター誤差は大幅に減少した。
+これは特定の初期状態・有限時間・有限個の出力時刻での観測であり、全時刻の全階層収束を証明するものではない。
+
+作用素ノルムによる評価は、$\widetilde F_2$ の入力として全ての $d^2$ 次元ベクトルを許した最悪ケースである。
+実際の非線形入力は同じ状態の積 $\tu\otimes\tu$ であり、Fourier共役対称性、ゼロ総質量摂動などの制約もある。
+例えば、それらが保たれる領域 $\mathcal D$ の全状態に対して
+\[
+\normtwo{\widetilde F_2(\bm v\otimes\bm v)}
+\leq b_{\mathrm{eff}}\normtwo{\bm v}^2,
+\qquad \bm v\in\mathcal D
+\]
+を正当化できれば、$R_{\mathrm{eff}}=b_{\mathrm{eff}}q_0/\gamma$ による、より鋭い安定性評価が考えられる。
+ここでは $\bm v$ もLyapunov座標の状態であり、異なる座標のノルムを混ぜない。
+
+ただし、観測した一本の軌道で小さい値を得ただけでは、領域全体に有効な定数にはならない。
+さらに、元の状態の積に制限した上界を、そのままCarleman行列の任意の階層入力への作用素ノルムとして使うこともできない。
+領域の不変性と、有限階層における誤差伝播を制御できることを別途示して初めて、打ち切りの収束保証を改善できる。
+第3章の $P$ の選択の最適化と併せ、これらは今後の研究課題である。

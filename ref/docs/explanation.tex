@@ -1,0 +1,68 @@
+% Build from repository root: make -C docs
+\documentclass[a4paper,11pt,oneside,openany]{ltjsbook}
+\usepackage{lmodern}
+\input{preamble.tex}
+\usepackage[margin=25mm]{geometry}
+\usepackage{booktabs}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\graphicspath{{../results/}}
+\newcommand{\uu}{\bm u}
+\newcommand{\tu}{\widetilde{\bm u}}
+\newcommand{\bu}{\overline{\bm u}}
+\newcommand{\nuu}{\bar\nu}
+\newcommand{\normtwo}[1]{\left\lVert #1\right\rVert_2}
+\newcommand{\sourcefile}[1]{\codepath{#1}}
+\hypersetup{pdftitle={弱非線形プラズマのCarleman線形化とLyapunov変換},pdfauthor={研究資料に基づく解説書}}
+\title{弱非線形プラズマの\\Carleman線形化とLyapunov変換\\[1em]\large 方程式の導出から1D1V数値実験・量子計算への接続まで}
+\author{プロジェクト内研究資料に基づく解説書}
+\date{2026年10月18日}
+\begin{document}
+\frontmatter
+\hypersetup{pageanchor=false}
+\maketitle
+\hypersetup{pageanchor=true}
+\chapter*{本書の読み方}
+\addcontentsline{toc}{chapter}{本書の読み方}
+本書は、\sourcefile{HANDOVER.md} と \sourcefile{PAPER_EXPLANATION.md} を統合し、
+\sourcefile{README.md}、\sourcefile{RESULTS.md}、実装および保存データと照合して作成した日本語解説書である。
+対象は、プラズマの二次非線形系を線形の高次元系に埋め込む方法と、その収束を評価するための座標変換である。
+元資料の要約に加え、Hermite係数の導出、線形ブロックの具体例、ノルムの微分不等式、スカラー系のCarleman例を補った。
+
+読者には線形代数、常微分方程式、複素数の基礎を想定する。Fourier展開・テンソル積・量子計算の専門知識は、必要な箇所で説明する。
+第1〜5章で理論、第6章で保存済みの実験結果、第7章で量子アルゴリズムの位置づけ、第8章で再現手順と次の実験を扱う。
+式だけを追う場合も、第6章の誤差定義と制約を併せて読むことを勧める。
+
+\begin{warningbox}
+このプロジェクトは1空間次元・1速度次元（1D1V）の古典的な原理検証である。
+量子回路、階層的ブロックエンコーディング、原論文の3D+3D計算は実装されていない。
+本書の実験値と図は既存の保存結果を収録しており、本書作成に伴う新たな全実験の再実行値ではない。
+原論文の書誌情報・式番号・計算量は提供された研究資料に基づく。外部原文との再照合は本書の作成範囲に含めない。
+\end{warningbox}
+\tableofcontents
+\mainmatter
+\input{chapters/01_model.tex}
+\input{chapters/02_discretization.tex}
+\input{chapters/03_lyapunov.tex}
+\input{chapters/04_convergence.tex}
+\input{chapters/05_carleman.tex}
+\input{chapters/06_results.tex}
+\input{chapters/07_quantum.tex}
+\input{chapters/08_reproduction.tex}
+\appendix
+\input{chapters/09_appendix.tex}
+\backmatter
+\begin{thebibliography}{9}
+\bibitem{paper} B. K. Berntson, D. Jennings, M. Lostaglio, S. Parker,
+\textit{An end-to-end quantum algorithm for weakly nonlinear plasma physics with superquadratic speedup},
+arXiv:2607.14308v2（提供資料記載：2026年7月17日）.
+\url{https://arxiv.org/abs/2607.14308v2}.
+本文参照先：\url{https://arxiv.org/html/2607.14308v2}.
+\bibitem{handover} \sourcefile{HANDOVER.md}, 研究・開発引継書, 2026年10月18日.
+\bibitem{explanation} \sourcefile{PAPER_EXPLANATION.md}, 論文解説, 2026年10月17日.
+\bibitem{results} \sourcefile{RESULTS.md}, \sourcefile{results/error_by_order.csv},
+\sourcefile{results/diagnostics.json}, 本リポジトリの保存実験結果.
+\bibitem{implementation} \sourcefile{plasma_carleman.py},
+\sourcefile{run_experiment.py}, \sourcefile{test_plasma_carleman.py}, 本リポジトリの参照実装.
+\end{thebibliography}
+\end{document}

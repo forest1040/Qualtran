@@ -1,0 +1,288 @@
+\chapter{Carleman階層と打ち切り}
+\begin{chaptergoal}
+\cgitem 積の微分から線形の無限階層を導く。\\
+\cgitem 有限次数で何を捨てるのかを具体化する。\\
+\cgitem 対称テンソル圧縮と座標変換の意味を理解する。
+\end{chaptergoal}
+
+\section{基底の線形結合と方程式の線形化は別の操作}
+\subsection{基底関数自身が一次関数である必要はない}
+「関数を基底関数の線形結合で表すこと」と「非線形な時間発展方程式を線形方程式へ変換すること」は別の操作である。
+例えば
+\[
+f(x)=x^2+3x+2
+\]
+は、$\varphi_0(x)=1$、$\varphi_1(x)=x$、$\varphi_2(x)=x^2$ と置けば
+\[
+f(x)=2\varphi_0(x)+3\varphi_1(x)+\varphi_2(x)
+\]
+と書ける。これは基底関数の線形結合だが、$\varphi_2$ 自身は $x$ の二次関数である。
+一般に
+\[
+\boxed{f(x)=\sum_{j=0}^{N}a_j\varphi_j(x)}
+\]
+が線形結合というとき、係数 $a_j$ について足し算と定数倍で組み合わせることを意味し、$\varphi_j(x)$ が $x$ の一次関数であることは要求しない。
+一次関数 $ax+b$ だけを何個線形結合しても、得られるのは高々一次の関数であり、一般の区間上の $x^2$ を正確には表せない。
+数学的には $ax+b$ は一般にアフィン関数であり、厳密な線形写像は $b=0$ の場合を指すが、この区別も基底の線形結合とは別の話である。
+
+\subsection{Fourier--Hermite展開後にも係数の積が残る}
+本書の展開は式\eqref{eq:expansion}のとおり
+\[
+g_N(x,v,t)=\sum_{n=-N_F}^{N_F}\sum_{a=0}^{N_H}
+u_{n,a}(t)\psi_n(x)H_a(v)
+\]
+である。右辺は $u_{n,a}$ を係数とする基底の線形結合であり、空間・速度について複雑な形の関数を表せる。
+しかし、ここから得られる係数の時間発展は
+\[
+\boxed{\dot\uu=F_1\uu+F_2(\uu\otimes\uu)}
+\]
+という二次非線形ODEである。
+元のVlasov方程式には電場と摂動の積があり、電位 $\phi[g]$ も摂動に線形に依存するため、射影後に $u_i u_j$ という係数の積が残る。
+関数の変数 $x,v$ に対する形の複雑さと、時間発展の右辺が未知係数 $\uu$ に線形かどうかは、区別して考える必要がある。
+
+\section{三つの操作の役割を整理する}
+Fourier--Hermite展開とGalerkin射影は、連続関数を有限個の係数へ置き換える。
+Lyapunov変換 $\tu=P^{1/2}\uu$ は、その係数の座標を変えて散逸性の評価をしやすくする。
+変換後も
+\[
+\dot\tu=\widetilde F_1\tu+\widetilde F_2(\tu\otimes\tu)
+\]
+なので、二次非線形性は残る。
+これに対しCarleman線形化は、高次の積そのものを新しい階層変数にして線形演算で表し直す。
+
+\begin{table}[htbp]
+\centering\small
+\caption{関数表現、安定性評価、時間発展の線形化の違い。}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule 手法 & 何を変換するか & 時間発展の非線形性 \\\midrule
+Fourier--Hermite展開とGalerkin法 & 関数を有限個の係数へ置き換える。 & 二次の係数積が残る。\\
+Lyapunov変換 & 安定性を評価しやすい座標へ移す。 & 二次非線形性が残る。\\
+Carleman線形化 & 高次の積を階層の新変数として扱う。 & 無限階層として線形に表現し、有限打ち切りで近似する。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\input{figures/representation_vs_linearization.tex}
+\caption{関数の基底展開と非線形方程式の線形化を順に使う流れ。Carlemanの有限系では、次元の増大と引き換えに線形の時間発展を得るが、打ち切り誤差も生じる。}
+\label{fig:representation-vs-linearization}
+\end{figure}
+
+\section{テンソル積を新しい変数とする}
+$\dot\bu=\overline F_1\bu+\overline F_2(\bu\otimes\bu)$ に対し、
+$\bm w_j=\bu^{\otimes j}$ を新しい変数に取る。
+例えば $j=2$ では積の微分により
+\begin{align}
+\dot{\bm w}_2={}&(\overline F_1\otimes I+I\otimes\overline F_1)\bm w_2\notag\\
+&+(\overline F_2\otimes I+I\otimes\overline F_2)\bm w_3.
+\end{align}
+一般に
+\begin{align}
+\dot{\bm w}_j&=A_{j,j}\bm w_j+A_{j,j+1}\bm w_{j+1},\\
+A_{j,j}&=\sum_{r=0}^{j-1}I^{\otimes r}\otimes\overline F_1\otimes I^{\otimes(j-1-r)},\\
+A_{j,j+1}&=\sum_{r=0}^{j-1}I^{\otimes r}\otimes\overline F_2\otimes I^{\otimes(j-1-r)}.
+\label{eq:carlemanblocks}
+\end{align}
+$A_{j,j}$ は $d^j\times d^j$、$A_{j,j+1}$ は $d^j\times d^{j+1}$ の行列である。
+各式は階層変数について線形だが、上位の変数を必要とするため有限個では閉じない。
+無限階層は元の解のテンソル積から厳密に得られる。ただし、任意の無限次元線形系としての解の存在・一意性には適切な関数空間の設定が必要である。
+
+\section{有限階層を閉じる}
+$N_C$ 次まで保持し、最上位の結合 $A_{N_C,N_C+1}$ を捨てる。
+有限系の変数を $\bm z_j$ と書けば、一般に $t>0$ で $\bm z_j=\bu^{\otimes j}$ という厳密な積構造は保たれない。
+例えば $N_C=3$ なら
+\begin{equation}
+\frac{\dd}{\dd t}
+\begin{pmatrix}\bm z_1\\\bm z_2\\\bm z_3\end{pmatrix}
+=\underbrace{\begin{pmatrix}
+ A_{1,1}&A_{1,2}&0\\0&A_{2,2}&A_{2,3}\\0&0&A_{3,3}
+\end{pmatrix}}_{A_C}
+\begin{pmatrix}\bm z_1\\\bm z_2\\\bm z_3\end{pmatrix},\quad
+\bm z_j(0)=\bu_0^{\otimes j}.
+\end{equation}
+解は $\bm z(t)=\ee^{tA_C}\bm z(0)$ であり、第1セクターを取り出して
+\begin{equation}
+\uu_C(t)=S^{-1}\bm z_1(t)/c
+\label{eq:recover}
+\end{equation}
+とすれば物理係数の近似が得られる。
+$N_C=1$ は二次項を捨てた線形系そのものである。
+高次セクターの打ち切り誤差が下位へ伝わるので、第1セクターだけを見た誤差と全階層を見た誤差は異なる。
+
+\section{安定性から全階層の打ち切り誤差へ}
+\subsection{誤差は切り捨てた最上位結合から生まれる}
+ここでは第4章の $R_P\leq R_{\mathrm{thr}}<1$ とbar規格化を仮定する。
+厳密な非線形解のテンソル積を $N=N_C$ 次まで並べたベクトルを
+\[
+\bm w^{[N]}(t)=\begin{pmatrix}\bu(t)\\\bu(t)^{\otimes2}\\\vdots\\\bu(t)^{\otimes N}\end{pmatrix}
+\]
+とし、有限Carleman解を $\bm z^{[N]}$ と書く。
+有限階層の $N=3$ の例では $\dot{\bm z}_3=A_{3,3}\bm z_3$ と閉じたが、厳密な $\bm w_3$ には $A_{3,4}\bm w_4$ の入力が残る。
+一般に
+\[
+\dot{\bm w}^{[N]}=A_C\bm w^{[N]}+\bm f_N(t),\qquad
+\bm f_N=\begin{pmatrix}0\\\vdots\\0\\A_{N,N+1}\bu^{\otimes(N+1)}\end{pmatrix}.
+\]
+この欠落した入力が打ち切り誤差の源であり、隣接ブロックの結合を通じて下位セクターにも影響する。
+誤差 $\bm e_N=\bm z^{[N]}-\bm w^{[N]}$ に対しては
+\[
+\dot{\bm e}_N=A_C\bm e_N-\bm f_N(t),\qquad \bm e_N(0)=0
+\]
+となる。同じ初期テンソルを使うので、初期誤差はゼロである。
+高次のテンソルが小さいだけでは十分ではなく、$A_C$ による誤差の伝播も制御する必要がある。
+
+\subsection{本書で導ける保守的な全時間上界}
+第4章で $r=(1+R_{\mathrm{thr}})/2<1$、$\bar b=\normtwo{\overline F_2}$、$\delta=\nuu-\bar b/2>\nuu/2$ と置いた。
+非線形解の安定性と有限Carleman行列の散逸性から
+\[
+\normtwo{\bu(t)}\leq r,\qquad
+\normtwo{\bm f_N(t)}\leq N\bar b\,r^{N+1},\qquad
+\normtwo{\ee^{tA_C}}\leq\ee^{-\delta t}
+\]
+を得る。誤差方程式を定数変化法で積分すると
+\[
+\bm e_N(t)=-\int_0^t\ee^{(t-s)A_C}\bm f_N(s)\,\dd s
+\]
+なので、
+\begin{align*}
+\normtwo{\bm e_N(t)}
+&\leq N\bar b\,r^{N+1}\int_0^t\ee^{-\delta(t-s)}\,\dd s\\
+&=\frac{N\bar b}{\delta}r^{N+1}(1-\ee^{-\delta t}).
+\end{align*}
+従って
+\begin{equation}
+\boxed{\epsilon_C^{[N]}:=\sup_{t\geq0}\normtwo{\bm e_N(t)}
+\leq\frac{N\bar b}{\delta}r^{N+1}}
+\label{eq:full-convergence-bound}
+\end{equation}
+となる。これは本書のブロックノルム評価から導く保守的な補助上界であり、原論文の式そのものや、その定数を再掲したものではない。
+$r<1$ などを固定すれば、$Nr^{N+1}$ は次数について指数的に小さくなり、目標精度に必要な次数は
+\[
+N_C=O\!\left(\log\frac1{\epsilon_C}\right)
+\]
+となる。例えば $r<\rho<1$ を固定すれば、$N(r/\rho)^N$ は有界なので $Nr^{N+1}$ を定数倍の $\rho^N$ で抑えられる。
+ただし、$r\to1$ となるパラメータ変更まで同じ定数で保証するものではない。
+原論文 Eqs.~(122)--(125) として提供資料で紹介される全階層の対数次数評価も、所定の収束・規格化条件の下での結果である。
+
+\begin{notebox}
+ここで全時間に対して評価したのは、bar座標の全階層誤差である。
+第6章の数値指標は、有限時間の出力時刻で測った値であり、この上界や全時間の上限そのものではない。
+また、一般の多変数系の誤差が $R_P^{N_C}$ になるとは述べていない。
+次のスカラー例の幾何級数と、式\eqref{eq:full-convergence-bound}の $r^{N_C+1}$ は、意味と定数が異なる。
+\end{notebox}
+
+\section{スカラー系で確かめる}
+理解のため $\dot x=-\gamma x+\beta x^2$、$x(0)=x_0$ を考える。
+$\gamma>0$ を減衰率、$\beta$ を二次作用の係数とする。
+新しい変数 $w_j=x^j$ を導入すると、積の微分から
+\[
+\dot w_j=jx^{j-1}\dot x=-j\gamma w_j+j\beta w_{j+1}
+\]
+を得る。最初の三つは
+\begin{align*}
+\dot w_1&=-\gamma w_1+\beta w_2,\\
+\dot w_2&=-2\gamma w_2+2\beta w_3,\\
+\dot w_3&=-3\gamma w_3+3\beta w_4.
+\end{align*}
+これを並べれば、無限次元だが
+\[
+\boxed{
+\frac{\dd}{\dd t}\begin{pmatrix}w_1\\w_2\\w_3\\\vdots\end{pmatrix}
+=\begin{pmatrix}
+-\gamma&\beta&0&0&\cdots\\
+0&-2\gamma&2\beta&0&\cdots\\
+0&0&-3\gamma&3\beta&\cdots\\
+\vdots&\vdots&\vdots&\vdots&\ddots
+\end{pmatrix}
+\begin{pmatrix}w_1\\w_2\\w_3\\\vdots\end{pmatrix}}
+\]
+という線形階層になる。
+$w_j$ は元の $x$ から作った量なので、初期値には $w_j(0)=x_0^j$ という整合条件がある。
+階層変数に関して右辺は線形でも、元の非線形系の全初期状態が任意の階層初期状態に対応するわけではない。
+有限打ち切りでは $w_{N_C+1}$ への結合を落とすため、元の積構造とのずれが生じる。
+元のスカラー方程式の厳密解は
+
+\[
+x(t)=\frac{x_0\ee^{-\gamma t}}
+{1-(\beta x_0/\gamma)(1-\ee^{-\gamma t})}.
+\]
+$N_C=2$ の打ち切りなら
+\[
+z_2=x_0^2\ee^{-2\gamma t},\qquad
+z_1=x_0\ee^{-\gamma t}
+\left[1+\frac{\beta x_0}{\gamma}(1-\ee^{-\gamma t})\right].
+\]
+分母を幾何級数に展開した最初の二項が再現される。
+一般に $N_C=N$ の第1成分は同じ級数の $m=0,\ldots,N-1$ の和となり、
+$|\beta x_0|/\gamma<1$ なら全時刻で級数比を1未満に抑えられる。
+\subsection{幾何級数の余りから次数を明示する}
+ここからは $\beta>0,x_0>0$ に限定し、$R=\beta x_0/\gamma$、$0<R<1$ とする。
+$N_C$ 次のCarleman系の第1成分を $x_{N_C}(t)$ と書けば
+\[
+\boxed{x_{N_C}(t)=x_0\ee^{-\gamma t}
+\sum_{k=0}^{N_C-1}\left[R(1-\ee^{-\gamma t})\right]^k}
+\]
+である。厳密解との誤差は幾何級数の余りなので
+\[
+\boxed{|x(t)-x_{N_C}(t)|=
+\frac{x_0\ee^{-\gamma t}\left[R(1-\ee^{-\gamma t})\right]^{N_C}}
+{1-R(1-\ee^{-\gamma t})}}
+\]
+となる。$t\geq0$ では $0\leq1-\ee^{-\gamma t}<1$ なので
+\[
+\boxed{\sup_{t\geq0}|x(t)-x_{N_C}(t)|
+\leq\frac{x_0}{1-R}R^{N_C}}
+\]
+を得る。従って絶対誤差を $\epsilon_C>0$ 以下にする十分な次数は
+\[
+\boxed{N_C\geq\max\left\{1,
+\left\lceil\frac{\log\!\left(\dfrac{x_0}{(1-R)\epsilon_C}\right)}
+{\log(1/R)}\right\rceil\right\}}
+\]
+である。$N_C\geq1$ の条件を付けることで、許容誤差が大きい場合も次数の定義と整合する。
+$x_0$ と $0<R<1$ を固定した小さい目標誤差について、$N_C=O(\log(1/\epsilon_C))$ が具体的に確認できる。
+これはスカラーの第1セクターに対する完全に計算できる例であり、多成分プラズマの全階層誤差の定理を、そのまま証明するものではない。
+
+\section{次元増大と対称性}
+無圧縮の状態次元は
+\begin{equation}
+D_{N_C}=\sum_{j=1}^{N_C}d^j
+\end{equation}
+である。疎行列化しても、状態ベクトル自体はこの長さを持つ。
+一方、$\bu^{\otimes j}$ は添字の交換に対して対称であり、独立な次数 $j$ の単項式は $\binom{d+j-1}{j}$ 個である。
+したがって対称基底なら
+\begin{equation}
+D_{N_C}^{\mathrm{sym}}=\sum_{j=1}^{N_C}\binom{d+j-1}{j}
+\end{equation}
+となる。$d=9,N_C=4$ では $7380$ 成分から $714$ 成分へ減らせる。
+多重指数 $\bm m=(m_1,\ldots,m_d)$、$\sum_i m_i=j$ に対し
+\[
+\sqrt{\frac{j!}{m_1!\cdots m_d!}}\prod_i\bar u_i^{m_i}
+\]
+を対称成分とすれば、全テンソルのユークリッドノルムを保てる。
+単に重複成分を一つだけ残す方法では全階層ノルムの重みが変わるので、圧縮前後の誤差比較には正規化が必要になる。
+この圧縮は今後の課題であり、現行コードには実装されていない。
+
+\section{可逆変換と打ち切りの整合性}
+$T=cS$、$\mathcal T=\bigoplus_{j=1}^{N_C}T^{\otimes j}$ とすると、整合的に構成したraw座標とbar座標の有限Carleman行列は
+\[
+A_C^{\mathrm{bar}}=\mathcal T A_C^{\mathrm{raw}}\mathcal T^{-1}
+\]
+で対応する。階層ごとの変換なので最上位結合の切断とも整合する。
+従って厳密演算では、同じ次数の近似を式\eqref{eq:recover}で戻した結果は一致する。
+Lyapunov変換の利点は、物理解を変更することではなく、散逸性と収束を評価できるノルムを見つけることにある。
+数値丸め・アルゴリズムの条件数により実際の計算では小さな差が生じうる。
+
+\section{拡張の視点：どの基底で表現するか}
+関数を表現する基底には、Fourier、Hermiteに加え、Chebyshev多項式、Legendre多項式、wavelet（ウェーブレット）、問題に合わせて学習した基底などの選択肢がある。
+基底と切断の選び方により、同じ精度に必要な係数数、作用行列の疎性、モーメントや境界条件の扱いやすさが変わる。
+少数の係数で対象の分布を十分に表せれば、Carleman階層の元の次元 $d$ も小さくできる可能性がある。
+
+ただし、基底選択自体が時間発展の線形化やCarleman収束を保証するわけではない。
+固定した線形な基底展開と射影では、もとの作用が二次なら係数についても二次の構造が保たれる。
+この次数の保存はFourier--Hermite基底だけの性質ではないが、本系ではGaussian重みの直交性、微分・速度乗算の隣接結合、Fourier波数の和を使い、$F_1,F_2$ を具体的かつ構造的に書ける。
+状態に応じて変わる基底や非線形な学習表現を使う場合は、追加の微分項や非多項式の依存性が生じうるため、係数方程式の構造を改めて確認する必要がある。
+
+基底の変更による圧縮や疎化は、今後検討できる研究課題である。
+その評価では、Galerkin誤差、初期状態の表現、Lyapunov評価、Carleman打ち切り誤差を分け、同じ物理的な問題と精度で比較することが必要になる。

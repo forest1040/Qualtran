@@ -1,0 +1,131 @@
+\chapter{保存された数値実験を読む}
+\begin{chaptergoal}
+\cgitem 基準解、評価座標、正規化、評価時刻を確認する。\\
+\cgitem 第1セクターと全階層の誤差を別々に読む。\\
+\cgitem 小規模の成功例から結論できる範囲を定める。
+\end{chaptergoal}
+
+\section{実験条件と基準解}
+保存データは $N_F=1$、$N_H=2$、$d=9$、$L=2\pi$、$\tau=1$、$\nuu=0.2$ に対応する。
+時間は $[0,8]$ の等間隔101点、$R_P=0.2,0.7,1.2$、$N_C=1,2,3,4$ を比較している。
+固定テンプレートには $n=\pm1$ の複数Hermite成分と $n=0$ の速度摂動が含まれ、各 $R_P$ に応じて全体振幅を変える。
+純粋な密度余弦波のみの初期状態ではない。
+
+基準解は同じ有限Galerkin ODEを \codeinline{solve_ivp(method="DOP853")} で積分したものとする。
+許容誤差は \codeinline{rtol=1e-11, atol=1e-13}。
+Carleman系にはCSR形式の疎行列と \codeinline{expm_multiply()} を使い、指数行列を密に生成せず、そのベクトルへの作用を計算する。
+基準解は高精度の数値解であり、厳密解ではない。
+
+\section{二種類の誤差と理論評価}
+出力時刻集合を $\mathcal T=\{t_0,\ldots,t_{100}\}$ とする。
+第1セクターの誤差は元の物理係数へ戻して
+\begin{equation}
+\widehat\epsilon_{\mathrm{first}}=
+\max_{t_m\in\mathcal T}
+\frac{\normtwo{\uu_C(t_m)-\uu_{\mathrm{ref}}(t_m)}}{\normtwo{\uu_0}}
+\label{eq:firsterror}
+\end{equation}
+と定義する。分母は各時刻の解ノルムではなく、初期状態のノルムである。
+減衰して小さくなった終状態に対する相対誤差とは意味が異なる。
+
+全階層の誤差はbar座標の絶対誤差であり、
+\begin{equation}
+\widehat\epsilon_{\mathrm{full}}=
+\max_{t_m\in\mathcal T}
+\left(\sum_{j=1}^{N_C}
+\normtwo{\bm z_j(t_m)-\bu_{\mathrm{ref}}(t_m)^{\otimes j}}^2\right)^{1/2}.
+\label{eq:fullerror}
+\end{equation}
+初期状態で割る規格化はしていない。
+$N_C$ が変わると比較する空間も増えるため、第1セクターと同じ速さで減る必要はない。
+また、bar規格化を変更すれば各次数の重みが変わる。
+
+提供資料が原論文 Eq.~(122) に対応づける量は、全階層に対する $\sup_{t\geq0}$ の誤差である。
+式\eqref{eq:fullerror}は有限時間かつ有限個の時刻でしか評価していない。
+時刻間で大きくなる誤差を捉えない可能性もあり、連続時間での最大値を保証する値ではない。
+原論文の収束条件の下では、他の依存性を固定して $N_C=O(\log(1/\epsilon_C))$ という評価が紹介されているが、4点の次数比較だけからその漸近則を確認することはできない。
+
+\section{線形構造と座標変換の照合}
+\begin{table}[htbp]
+\centering
+\caption{\sourcefile{results/diagnostics.json} の保存値。}
+\begin{tabularx}{\textwidth}{Xr}
+\toprule 指標 & 保存値 \\\midrule
+$\mu_2(F_1)$ & $+0.05$\\
+$\mu_2(\widetilde F_1)$ & $-0.20$\\
+Lyapunov等式の相対残差 & $0.0$\\
+$\normtwo{\widetilde F_2}$ & $0.3257350079$\\
+変換座標から戻した基準解との差（全ケースの最大） & $3.52\times10^{-12}$\\
+\bottomrule
+\end{tabularx}
+\end{table}
+対数ノルムの符号が変わることは、第3章で導いた構造と整合する。
+残差の $0.0$ は保存された浮動小数点計算での値であり、一般のパラメータや別の演算順序で厳密にゼロになる保証ではない。
+なお、\codeinline{lyapunov_residual()} のdocstringには無限大ノルムとあるが、実装は \codeinline{np.linalg.norm()} の既定値で行列のFrobeniusノルムを使う。
+測っている値は
+\[
+\frac{\|F_1^\dagger P+PF_1+2\nuu P\|_{\mathrm F}}{\|2\nuu P\|_{\mathrm F}}
+\]
+である。これは関数の実際の計算に基づく定義である。
+
+\section{第1セクターの収束}
+\begin{table}[htbp]
+\centering\small
+\caption{式\eqref{eq:firsterror}の保存結果。CSVの値を有効数字6桁で丸めた。}
+\begin{tabular}{rrrrr}
+\toprule
+$N_C$ & $D_{N_C}$ & $R_P=0.2$ & $R_P=0.7$ & $R_P=1.2$\\\midrule
+1 & 9 & $8.09281\times10^{-3}$ & $2.83246\times10^{-2}$ & $4.85559\times10^{-2}$\\
+2 & 90 & $1.29878\times10^{-6}$ & $1.59124\times10^{-5}$ & $4.67777\times10^{-5}$\\
+3 & 819 & $1.15491\times10^{-8}$ & $4.95165\times10^{-7}$ & $2.49460\times10^{-6}$\\
+4 & 7380 & $1.94297\times10^{-11}$ & $1.25894\times10^{-10}$ & $1.09067\times10^{-9}$\\
+\bottomrule
+\end{tabular}
+\end{table}
+第1セクターの誤差は急速に小さくなる。
+ただし $10^{-11}$ 前後の値は、基準ODE解の誤差や指数作用計算の丸め誤差の影響も検討すべき領域である。
+許容誤差を厳しくするなどの独立な検査なしに、表示された全桁をCarleman打ち切り誤差と断定しない。
+$R_P=1.2$ でも誤差が減るのは、十分条件の外側にも良好な有限時間近似がありうることを示す一例である。
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=.86\textwidth]{carleman_error.png}
+\caption{保存済みの第1セクター誤差。物理座標へ戻し、初期状態ノルムで規格化している。}
+\end{figure}
+
+\section{全階層とエネルギーの挙動}
+\begin{table}[htbp]
+\centering\small
+\caption{式\eqref{eq:fullerror}の保存結果。bar座標の絶対誤差。}
+\begin{tabular}{rrrr}
+\toprule $N_C$ & $R_P=0.2$ & $R_P=0.7$ & $R_P=1.2$\\\midrule
+1 & $6.07643\times10^{-3}$ & $2.12674\times10^{-2}$ & $3.64579\times10^{-2}$\\
+2 & $5.98574\times10^{-3}$ & $2.10082\times10^{-2}$ & $3.61213\times10^{-2}$\\
+3 & $5.20589\times10^{-3}$ & $1.83218\times10^{-2}$ & $3.16037\times10^{-2}$\\
+4 & $4.33786\times10^{-3}$ & $1.53036\times10^{-2}$ & $2.64714\times10^{-2}$\\
+\bottomrule
+\end{tabular}
+\end{table}
+全階層誤差は緩やかに減少する。初期barノルムが $0.9$ なので、高次のテンソル成分もまだ小さいとは言い切れない。
+ただし、その事実だけで遅い減少の原因を完全に説明したことにはならない。
+次数別の誤差寄与、異なる規格化、より高い $N_C$ を分けて測定する必要がある。
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=.86\textwidth]{carleman_full_error.png}
+\caption{保存済みの全階層誤差。第1セクターの図とは座標・正規化・対象が異なる。}
+\end{figure}
+
+保存された3ケースでは $\mathcal F$ は出力時刻上で単調減少し、$R_P<1$ の2ケースは式\eqref{eq:energybound}の上界と整合している。
+$R_P=1.2$ では同じ保証は適用せず、実際の減衰を観測したと述べるにとどめる。
+\begin{figure}[htbp]
+\centering\includegraphics[width=.86\textwidth]{lyapunov_energy.png}
+\caption{保存済みの二次自由エネルギーと保守的な上界。破線は $R_P<1$ のケースにのみ描く。}
+\end{figure}
+
+\section{今回のデータが検証していないこと}
+$N_F=1$ では $n=\pm2$ の成分が表現できず、基本波から第2高調波への生成を観測できない。
+既存の二次項は保持されたモード間で作用するが、物理的な非線形モード結合の十分な検証にはならない。
+$N_H=2$ も小さく、長時間の位相混合やHermite切断境界からの影響を評価するには不足している。
+
+基準ODEとCarleman解の一致は、共通の有限Galerkin方程式の比較である。
+独立のPDE離散化、分布の非負性、Fourier・Hermite解像度の収束は別途調べる必要がある。
+また古典的な小規模実験の速度や精度から、量子アルゴリズムの実行速度・実機資源・優位性を判断することはできない。

@@ -1,0 +1,21 @@
+% Orthonormal probabilists' Hermite polynomials; Gaussian weight is not plotted.
+\begin{tikzpicture}
+\begin{axis}[
+ width=.86\textwidth,height=7cm,
+ xmin=-2,xmax=2,ymin=-2.5,ymax=2.5,
+ xlabel={無次元速度 $v$},ylabel={$H_a(v)$},
+ xtick={-2,-1,0,1,2},ytick={-2,-1,0,1,2},
+ grid=both,minor tick num=1,
+ tick label style={font=\small},label style={font=\small},
+ legend style={font=\small,at={(.5,-.23)},anchor=north,legend columns=2},
+ domain=-2:2,samples=101]
+\addplot[black,thick]{1};
+\addlegendentry{$H_0=1$}
+\addplot[blue!70!black,thick,dashed]{x};
+\addlegendentry{$H_1=v$}
+\addplot[red!70!black,thick,dashdotted]{(x^2-1)/sqrt(2)};
+\addlegendentry{$H_2=(v^2-1)/\sqrt2$}
+\addplot[green!50!black,thick,densely dotted]{(x^3-3*x)/sqrt(6)};
+\addlegendentry{$H_3=(v^3-3v)/\sqrt6$}
+\end{axis}
+\end{tikzpicture}

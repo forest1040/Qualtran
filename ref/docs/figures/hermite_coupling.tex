@@ -1,0 +1,19 @@
+\begin{tikzpicture}[>=Stealth,
+ basis/.style={draw,rounded corners,minimum width=17mm,minimum height=9mm},
+ every node/.style={font=\small}]
+\node at (0,0) {$vH_a$:};
+\node[basis] (mid) at (6.5,0) {$H_a$};
+\node[basis] (lo) at (3,0) {$H_{a-1}$};
+\node[basis] (hi) at (10,0) {$H_{a+1}$};
+\draw[->,blue!70!black] (mid)--node[above] {$\sqrt a$}(lo);
+\draw[->,blue!70!black] (mid)--node[above] {$\sqrt{a+1}$}(hi);
+\node at (0,-1.4) {$\partial_vH_a$:};
+\node[basis] (dm) at (6.5,-1.4) {$H_a$};
+\node[basis] (dl) at (3,-1.4) {$H_{a-1}$};
+\draw[->,blue!70!black] (dm)--node[above] {$\sqrt a$}(dl);
+\node[align=center] at (0,-2.9) {$(-v+\partial_v)H_a$:};
+\node[basis] (cm) at (6.5,-2.9) {$H_a$};
+\node[basis] (ch) at (10,-2.9) {$H_{a+1}$};
+\draw[->,red!70!black] (cm)--node[above] {$-\sqrt{a+1}$}(ch);
+\node[align=center,text=gray] at (3,-2.9) {下向きは相殺};
+\end{tikzpicture}

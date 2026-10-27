@@ -1,0 +1,61 @@
+\chapter{記号・検証・演習の補足}
+\section{記号表}
+\par\noindent
+\begin{tabularx}{\textwidth}{lX}
+\toprule 記号 & 意味 \\\midrule
+$f,w,g$ & 分布関数、平衡Maxwell分布、相対摂動 $f=w(1+g)$。\\
+$\phi,\tau,\nuu$ & 無次元電位、イオン・電子温度比、Krook緩和率。\\
+$N_F,N_H,N_C$ & Fourier、Hermite、Carlemanの打ち切り次数。\\
+$k_n,\kappa_n$ & 波数 $2\pi n/L$、遮蔽係数 $\tau+k_n^2$。\\
+$\uu,F_1,F_2$ & 有限Galerkin係数、一次作用、二次作用。\\
+$P,S$ & 自由エネルギーの正定値行列、平方根 $S=P^{1/2}$。\\
+$\tu,\bu$ & Lyapunov座標 $S\uu$、振幅規格化座標 $cS\uu$。\\
+$R_P,R_{\mathrm{thr}}$ & 非線形性と散逸の比、bar規格化用の閾値。\\
+$\bm w_j,\bm z_j$ & 厳密解の $j$ 次テンソル、有限Carleman系の第 $j$ セクター。\\
+$\mu_2,\normtwo{\cdot}$ & ユークリッド対数ノルム、ベクトル2ノルム／行列最大特異値。\\
+$D_{N_C}$ & 無圧縮Carleman状態次元 $\sum_{j=1}^{N_C}d^j$。\\
+\bottomrule
+\end{tabularx}
+
+\section{演習の解答例}
+余弦を指数関数に分けると
+\[
+A\cos(k_1x)=\frac A2(\ee^{\ii k_1x}+\ee^{-\ii k_1x})
+\]
+であり、正規直交基底の $1/\sqrt L$ と比較して $u_{\pm1,0}=A\sqrt L/2$ を得る。
+$n=2,a=1$ の初期非線形項には $(n',n'')=(1,1)$ だけが寄与し、式\eqref{eq:harmonic}となる。
+線形寄与は同じ波数 $n=2$ の初期係数が全てゼロなので消える。
+$\dot u_{2,0}(0)=0$ だが、輸送結合から
+\[
+\ddot u_{2,0}(0)=-\ii k_2\dot u_{2,1}(0)
+=-\frac{k_2k_1A^2\sqrt L}{4\kappa_1}
+\]
+となる。密度の第2高調波は最初は $t^2$ の次数で生成する。
+
+変換の演習では、$\tu=S\uu$ を微分し $\uu=S^{-1}\tu$ を代入すれば式\eqref{eq:transform}が得られる。
+初期値も $S\uu_0$ に変換すれば解は一対一に対応し、$S^{-1}$ で元の物理解を回復できる。
+ノルムの球が元の座標では楕円体に変わるため、同じ軌道でも増減の見え方が異なる。
+
+\section{誤差を切り分ける検証の順序}
+最初に係数レベルでHermite恒等式、Galerkin添字、Lyapunov等式を照合する。
+次に同一の有限ODEで変換前後の解を比較し、時間積分の許容誤差依存性を調べる。
+その上で固定解像度でCarleman次数を変え、両誤差を測る。
+最後に独立なPDE離散化およびFourier・Hermite解像度を変え、空間・速度切断の影響を調べる。
+これにより「何が小さくなった誤差か」を特定できる。
+
+\section{原論文への参照案内}
+以下は提供資料に記載された参照番号である。
+\par\noindent
+\begin{tabularx}{\textwidth}{lX}
+\toprule 箇所 & 内容 \\\midrule
+Eqs.~(4)--(5), (66)--(67) & 相対摂動のPDEと遮蔽Poisson方程式。\\
+Eq.~(83) & Fourier--Hermite係数の二次ODE。\\
+Eqs.~(86)--(92) & $P$、Lyapunov等式、変換後の対数ノルム。\\
+Eqs.~(107)--(114) & bar規格化とCarleman階層。\\
+Eqs.~(122)--(125) & 全階層の誤差評価、Lyapunov $R$ 数。\\
+Appendix C.1, Eqs.~(191)--(204) & Hermite恒等式と行列係数の導出。\\
+Appendix F, Eq.~(150) & 階層的ブロックエンコーディング。\\
+Appendix J & 履歴状態からの観測量抽出。\\
+\bottomrule
+\end{tabularx}
+本書の式番号は本書独自の番号であり、原論文の式番号とは別である。

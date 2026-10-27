@@ -1,0 +1,10 @@
+\begin{tikzpicture}[>=Stealth,every node/.style={font=\small},
+ mode/.style={draw,rounded corners,align=center,text width=3.3cm,minimum height=14mm}]
+\node[mode] (field) at (0,1) {密度 $u_{1,0}$\\電位 $\phi_1=u_{1,0}/\kappa_1$};
+\node[mode] (perturbation) at (0,-1) {摂動 $u_{1,0}$\\Hermite次数0};
+\node[draw,circle,minimum size=9mm] (product) at (3.5,0) {$\times$};
+\node[mode] (output) at (7,0) {$\dot u_{2,1}(0)\ne0$\\波数 $1+1=2$\\Hermite次数 $0+1=1$};
+\draw[->] (field.east)--(product.north west);
+\draw[->] (perturbation.east)--(product.south west);
+\draw[->] (product.east)--(output.west);
+\end{tikzpicture}

@@ -1,0 +1,594 @@
+\chapter{Fourier--Hermite展開から二次ODEを作る}
+\begin{chaptergoal}
+\cgitem 基底の正規化と添字の範囲を固定する。\\
+\cgitem 非線形項のHermite相殺を計算する。\\
+\cgitem 実装で使う $F_1,F_2$ の係数を得る。
+\end{chaptergoal}
+
+\section{1D1Vモデルの基底}
+ここから第6章までは位置 $x\in[0,L)$、速度 $v\in\mathbb R$ の縮約系を扱う。
+\textbf{Probabilists' Hermite多項式（確率論型Hermite多項式）}は、標準正規分布を重みとして直交する多項式の系列である。
+Maxwell分布を基準とする速度方向の展開に適しており、速度による掛け算や微分を、係数間の簡単な行列演算へ置き換えられる。
+以下では、Fourierの添字 $n$ と区別するため、Hermite次数には $a$ を使う。
+
+\subsection{何を変換するのか：関数のPDEから係数のODEへ}
+本論文で確率論型Hermite多項式を使う主な目的は、Maxwell分布を基準に速度依存性を展開し、Vlasov--Poisson偏微分方程式を有限次元の常微分方程式へ変換することである。
+これは、Carleman線形化を適用するための前処理に当たる。
+元の未知量 $g(x,v,t)$ は連続変数 $x,v,t$ に依存し、例えば自由輸送だけでも
+\[
+\partial_tg=-v\partial_xg
+\]
+というPDEを満たす。そこで位置と速度を基底展開し、時間依存性を係数に集める。
+
+\begin{table}[htbp]
+\centering\small
+\caption{Fourier--Hermite展開で各変数をどう扱うか。}
+\begin{tabularx}{\textwidth}{llX}
+\toprule 変数 & 扱い & 目的 \\\midrule
+位置 $x$ & Fourier展開 & 空間微分を波数との掛け算へ変換する。\\
+速度 $v$ & Hermite展開 & 速度微分と速度による掛け算を係数間の行列演算へ変換する。\\
+時間 $t$ & 連続変数として保持 & 係数のODEを解き、時間発展を求める。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+速度方向だけなら、有限次数で
+\[
+g(v,t)\simeq\sum_{j=0}^{N_H}a_j(t)H_j(v)
+\]
+と近似する。最初の3項は
+\[
+g(v,t)\simeq a_0(t)+a_1(t)v+a_2(t)\frac{v^2-1}{\sqrt2}
+\]
+であり、時間依存する係数ベクトル $\bm a(t)=(a_0,a_1,a_2)^{\mathsf T}$ を未知量にできる。
+無限個の基底を使う展開と異なり、有限個への切断は近似である。
+次数を高くすると表現できる構造は増えるが、必要な次数は分布の滑らかさや位相混合の進み方に依存する。
+
+\begin{figure}[htbp]
+\centering
+\input{figures/hermite_projection.tex}
+\caption{速度の連続関数から有限個の係数への変換。係数はGaussian重みの射影で得られる。密度・流速・速度分散との対応には、後述するモーメントの規格化が必要である。}
+\label{fig:hermite-projection}
+\end{figure}
+
+\subsection{定義と最初の多項式}
+確率論型Hermite多項式はRodriguesの公式
+\[
+\boxed{\mathrm{He}_a(v)=(-1)^a\ee^{v^2/2}
+\frac{\dd^a}{\dd v^a}\ee^{-v^2/2}},\qquad a=0,1,2,\ldots
+\]
+で定義される。例えば $a=1$ では
+\[
+\mathrm{He}_1(v)=-\ee^{v^2/2}\frac{\dd}{\dd v}\ee^{-v^2/2}=v
+\]
+である。最初の6個を表\ref{tab:hermite-polynomials}に示す。
+
+\begin{table}[htbp]
+\centering
+\caption{確率論型Hermite多項式。ここではまだ正規直交化していない。}
+\label{tab:hermite-polynomials}
+\begin{tabular}{cl}
+\toprule 次数 $a$ & $\mathrm{He}_a(v)$ \\\midrule
+0 & $1$\\
+1 & $v$\\
+2 & $v^2-1$\\
+3 & $v^3-3v$\\
+4 & $v^4-6v^2+3$\\
+5 & $v^5-10v^3+15v$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{確率論型と物理学型を区別する}
+Hermite多項式には主に二つの規約がある。
+表\ref{tab:hermite-conventions}のように、重みのGaussianの幅と多項式の係数が異なる。
+\begin{table}[htbp]
+\centering\small
+\caption{確率論型と物理学型の比較。重みの規格化定数は省略した。}
+\label{tab:hermite-conventions}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule & 確率論型（Probabilists'） & 物理学型（Physicists'） \\\midrule
+記号 & $\mathrm{He}_a(v)$ & $H_a^{\mathrm{phys}}(v)$\\
+重み & $\ee^{-v^2/2}$ & $\ee^{-v^2}$\\
+1次 & $v$ & $2v$\\
+2次 & $v^2-1$ & $4v^2-2$\\
+代表的な用途 & 確率統計、Gaussian重みの速度展開 & 量子調和振動子など\\
+\bottomrule
+\end{tabularx}
+\end{table}
+本書の1次元平衡Maxwell分布は標準正規分布
+\[
+w_1(v)=(2\pi)^{-1/2}\ee^{-v^2/2}
+\]
+であるため、確率論型が自然に対応する。
+両者は $H_a^{\mathrm{phys}}(v)=2^{a/2}\mathrm{He}_a(\sqrt2v)$ で関係するが、規約を混ぜると後述する $\sqrt a$ などの結合係数が変わる。
+本書の $H_a$ は物理学型の記号ではなく、次に定義する正規化済みの確率論型を意味する。
+
+\subsection{Gaussian重みでの直交性と正規化}
+最も重要な性質は、異なる次数がGaussian重みの内積で直交することである。
+\[
+\boxed{\int_{-\infty}^{\infty}w_1(v)\mathrm{He}_a(v)\mathrm{He}_b(v)\,\dd v
+=a!\delta_{ab}},\qquad
+\delta_{ab}=\begin{cases}1 & a=b,\\0 & a\ne b.\end{cases}
+\]
+例えば $\int w_1(v)\,v\,\dd v=0$ は左右対称な重みと奇関数の積の積分であり、
+$\int w_1(v)v^2\,\dd v=1$ は標準正規分布の分散に対応する。
+本書では
+\[
+\boxed{H_a(v)=\frac{\mathrm{He}_a(v)}{\sqrt{a!}}},\qquad
+\boxed{\int_{\mathbb R}w_1(v)H_a(v)H_b(v)\,\dd v=\delta_{ab}}
+\]
+という正規直交化を使う。従って
+\[
+H_0=1,\quad H_1=v,\quad H_2=\frac{v^2-1}{\sqrt2},\quad
+H_3=\frac{v^3-3v}{\sqrt6}
+\]
+となる。これらは多項式そのものであり、Gaussianを掛けたHermite関数とは区別する。
+
+\begin{figure}[htbp]
+\centering
+\input{figures/hermite_polynomials.tex}
+\caption{正規化された確率論型Hermite多項式 $H_0$〜$H_3$。直交性は有限の表示範囲での通常の面積ではなく、全実数上でGaussian重みを掛けた内積について成り立つ。}
+\label{fig:hermite-polynomials}
+\end{figure}
+
+\subsection{Fourier--Hermite係数への展開}
+Fourier基底は $L^{-1/2}\ee^{\ii k_nx}$、$k_n=2\pi n/L$ とし、
+\begin{equation}
+g(x,v,t)\simeq\frac1{\sqrt L}\sum_{n=-N_F}^{N_F}\sum_{a=0}^{N_H}
+u_{n,a}(t)\ee^{\ii k_nx}H_a(v),\qquad d=(2N_F+1)(N_H+1)
+\label{eq:expansion}
+\end{equation}
+と展開する。式中の $u_{n,a}$ は全て同じベクトル $\uu$ の成分である。
+実装では $n=-N_F,\ldots,N_F$ の順に、それぞれ $a=0,\ldots,N_H$ を並べる。
+ゼロ始まりの添字は
+\[
+\operatorname{idx}(n,a)=(n+N_F)(N_H+1)+a
+\]
+となる。テンソル積の列添字は $i d+j$ であり、$u_i u_j$ に対応する。
+
+実数条件とゼロ総質量摂動は
+\begin{equation}
+u_{-n,a}=u_{n,a}^*,\qquad u_{0,0}=0
+\end{equation}
+である。Krook緩和は一般に質量摂動を減衰させるが、初期にゼロならこのモードはゼロを保つ。
+Hermite直交性から密度摂動には $a=0$ だけが寄与し、電位の係数は
+\begin{equation}
+\kappa_n=\tau+k_n^2,\qquad \phi_n=\frac{u_{n,0}}{\kappa_n}
+\end{equation}
+となる。$\tau>0$ なので $n=0$ にも逆演算の特異性はない。
+
+\subsection{Hermite係数と速度モーメントの関係}
+各位置での速度依存性を $g(x,v,t)=\sum_a c_a(x,t)H_a(v)$ と書けば、式\eqref{eq:expansion}の規約では
+\[
+c_a(x,t)=\frac1{\sqrt L}\sum_{n=-N_F}^{N_F}u_{n,a}(t)\ee^{\ii k_nx}
+\]
+である。直交性により $c_a=\int w_1gH_a\,\dd v$ として係数を取り出せる。
+例えば速度だけを考え、最初の3項で近似すると
+\[
+g(v)=a_0H_0(v)+a_1H_1(v)+a_2H_2(v)
+=a_0+a_1v+\frac{a_2}{\sqrt2}(v^2-1)
+\]
+となる。分布の速度依存性を基底と係数に分け、$(a_0,a_1,a_2,\ldots)$ を時間発展させればよい。
+
+\begin{table}[htbp]
+\centering\small
+\caption{低次Hermite係数が記述する速度分布の特徴。係数と物理量の関係には密度による規格化などが入る。}
+\begin{tabularx}{\textwidth}{lX}
+\toprule 基底 & 関係する特徴 \\\midrule
+$H_0=1$ & 粒子密度の変化。\\
+$H_1=v$ & 平均流速・運動量の変化。\\
+$H_2=(v^2-1)/\sqrt2$ & 温度・速度分散の変化。\\
+$H_3=(v^3-3v)/\sqrt6$ & 熱流束に関係する高次モーメント。\\
+$H_4$ 以降 & 高次モーメントや、より複雑な非Maxwell的構造。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+各係数を平均流速・温度・熱流束そのものと同一視しないことが重要である。
+実際、$f=w_1(1+g)$ に対して生の速度モーメント $M_j=\int v^j f\,\dd v$ は
+\[
+n=M_0=1+c_0,\qquad M_1=c_1,\qquad
+M_2=n+\sqrt2c_2,\qquad M_3=3c_1+\sqrt6c_3
+\]
+となる（現れない高次係数は0とする）。
+従って基底と係数の関係が一度わかれば、これらの物理モーメントを求めるたびに速度方向の数値積分を行う必要はない。
+速度だけの展開 $g=\sum_j a_j(t)H_j$ なら、同じ式の $c_a$ を $a_a$ に置き換えればよい。
+従って $n>0$ の場所の平均速度と速度分散は
+\[
+U=\frac{c_1}{n},\qquad
+\sigma_v^2=\frac{M_2}{n}-U^2=1+\frac{\sqrt2c_2}{n}-U^2
+\]
+である。1次元の熱流束に関係する中心3次モーメントも
+\[
+\int(v-U)^3f\,\dd v=M_3-3UM_2+2nU^3
+\]
+なので、一般には $c_3$ だけでは決まらない。
+基準平衡の周りの小さな摂動では、$c_1$ は流速、$\sqrt2c_2$ は速度分散の変化、$\sqrt6c_3$ は中心3次モーメントの主な一次寄与を表す。
+
+\section{速度方向の相殺}
+正規化したHermite多項式の微分は次数を一つ下げ、速度 $v$ による掛け算は隣接する二つの次数を結ぶ。
+具体的には
+\begin{align}
+vH_a&=\sqrt{a+1}H_{a+1}+\sqrt a H_{a-1},\\
+\partial_vH_a&=\sqrt a H_{a-1}
+\end{align}
+を満たす。これらは、多項式を微分・乗算した後に基底へ戻すための厳密な代数的恒等式である。
+速度微分を速度格子の差分で近似する代わりに、係数間の疎な結合として表現できる。
+ただし、有限の $N_H$ で外側の次数を捨てるGalerkin切断の誤差は残る。
+
+\subsection{微分を行列に置き換える具体例}
+$g=a_0H_0+a_1H_1+a_2H_2$ に対して、微分は
+\[
+\partial_vg=a_1H_0+\sqrt2a_2H_1
+\]
+である。基底 $(H_0,H_1,H_2)$ における微分後の係数は
+\[
+\partial_vg\quad\longleftrightarrow\quad
+D\bm a,
+\qquad D=\begin{pmatrix}0&1&0\\0&0&\sqrt2\\0&0&0\end{pmatrix},
+\quad\bm a=\begin{pmatrix}a_0\\a_1\\a_2\end{pmatrix}
+\]
+となる。この場合の微分は次数を下げるので、3次元の基底内で厳密に閉じる。
+一方、速度の掛け算は
+\[
+vg=a_1H_0+(a_0+\sqrt2a_2)H_1+\sqrt2a_1H_2+\sqrt3a_2H_3
+\]
+となり、上位の $H_3$ が生まれる。
+$H_0,H_1,H_2$ の空間への射影を $\Pi_2$ と書くと
+\[
+\Pi_2(vg)\quad\longleftrightarrow\quad
+V\bm a,\qquad
+V=\begin{pmatrix}0&1&0\\1&0&\sqrt2\\0&\sqrt2&0\end{pmatrix}
+\]
+である。有限行列への置き換えで上位成分を捨てる箇所を明確にすると、代数的恒等式とGalerkin近似を区別できる。
+空間方向も $\partial_x\ee^{\ii k_nx}=\ii k_n\ee^{\ii k_nx}$ なので、同じ基底内で空間微分を係数への掛け算にできる。
+
+\subsection{二つの非線形電場作用をまとめる}
+\begin{figure}[htbp]
+\centering
+\input{figures/hermite_coupling.tex}
+\caption{Hermite次数の結合。$a\geq1$ を描いた。$a=0$ では $\sqrt a=0$ となり下向きの結合はない。微分と速度乗算を組み合わせると、下向き結合が相殺される。}
+\label{fig:hermite-coupling}
+\end{figure}
+
+二次項をまとめると
+\[
+-(v\partial_x\phi)g+(\partial_x\phi)\partial_vg
+=(\partial_x\phi)(-v+\partial_v)g
+\]
+であり、
+\begin{equation}
+(-v+\partial_v)H_b=-\sqrt{b+1}H_{b+1}
+\label{eq:hermitecancel}
+\end{equation}
+となる。下向きのHermite結合が相殺され、出力 $a$ には入力 $a-1$ が結合する。
+この相殺済みの係数が \codeinline{build_plasma_1d()} に実装されている。
+Hermite展開そのものが非線形性を消すわけではない。
+Maxwell重みでの直交性と簡単な微分・乗算則により、非線形性を明示的な二次作用 $F_2$ に整理できることが、その後のCarleman線形化へつながる。
+
+Fourier基底の積には
+\[
+(L^{-1/2}\ee^{\ii k_{n'}x})(L^{-1/2}\ee^{\ii k_{n''}x})
+=L^{-1/2}(L^{-1/2}\ee^{\ii k_{n'+n''}x})
+\]
+という係数が生じる。これが非線形係数の $L^{-1/2}$ の由来である。
+3空間次元の $L^{-3/2}$ をそのまま1次元へ持ち込まない。
+
+\section{Galerkin方程式}
+\subsection{Galerkin法の考え方：残差を基底に直交させる}
+\textbf{Galerkin法（ガラーキン法）}は、未知関数を有限個の基底で近似し、元の方程式の残差が、その基底の張る空間に直交するように係数を決める方法である。
+本書ではFourier--Hermite基底を使い、Carleman線形化へ渡す二次ODEを構成する。
+
+まず単純なPDE $\partial_tg=\mathcal L[g]$ を考え、基底 $\psi_0,\ldots,\psi_N$ により
+\[
+g_N(x,t)=\sum_{j=0}^{N}a_j(t)\psi_j(x)
+\]
+と近似する。$g_N$ を元の方程式へ代入しても、有限個の基底では一般に全ての点で等式は成立しない。
+そこで方程式の残差を
+\[
+R(x,t)=\partial_tg_N-\mathcal L[g_N]
+\]
+と定義し、
+\[
+\boxed{\langle\psi_m,R\rangle=0,\qquad m=0,\ldots,N}
+\]
+を課す。残差は $g_N-g$ という解の誤差そのものではなく、近似関数が元の方程式を満たさない度合いである。
+Galerkin法は、この残差の基底空間への射影をゼロにする。
+各格子点で残差をゼロにする選点法とは、条件の課し方が異なる。
+
+\begin{figure}[htbp]
+\centering
+\input{figures/galerkin_residual.tex}
+\caption{Galerkin条件の模式図。基底空間内にある $\partial_tg_N$ を、元の作用 $\mathcal L[g_N]$ の射影に一致させると、残差 $R=\partial_tg_N-\mathcal L[g_N]$ は基底空間に直交する。関数空間の関係を説明用の2次元図に置き換えている。}
+\label{fig:galerkin-residual}
+\end{figure}
+
+時間に依存しない基底なら
+\[
+\sum_{j=0}^{N}\langle\psi_m,\psi_j\rangle\dot a_j
+=\left\langle\psi_m,\mathcal L\left[\sum_{j=0}^{N}a_j\psi_j\right]\right\rangle.
+\]
+一般の基底では左辺に質量行列 $M_{mj}=\langle\psi_m,\psi_j\rangle$ が現れる。
+正規直交基底なら $M=I$ なので
+\[
+\boxed{\dot a_m=
+\left\langle\psi_m,\mathcal L\left[\sum_{j=0}^{N}a_j\psi_j\right]\right\rangle}
+\]
+となり、有限個の係数のODEが得られる。
+同じ射影の考え方は非線形な作用にも適用できるが、得られるODEが線形になるとは限らない。
+
+\subsection{Fourier--Hermite基底と重み付き内積}
+1D1Vのプラズマ系では、位置の周期性に合わせて
+\[
+\psi_n(x)=\frac1{\sqrt L}\ee^{\ii k_nx},\qquad k_n=\frac{2\pi n}{L}
+\]
+を使い、速度にはMaxwell重みで正規直交する $H_a(v)$ を使う。
+積基底を $\Psi_{n,a}(x,v)=\psi_n(x)H_a(v)$ と書き、内積を
+\[
+\boxed{\langle h,g\rangle=
+\int_0^L\dd x\int_{\mathbb R}\dd v\,w_1(v)h(x,v)^*g(x,v)}
+\]
+と定義する。第1引数の複素共役を取る規約であり、$\langle\Psi_{n,a},\Psi_{m,b}\rangle=\delta_{nm}\delta_{ab}$ となる。
+有限展開は
+\[
+g_N=\sum_{n=-N_F}^{N_F}\sum_{a=0}^{N_H}u_{n,a}(t)\Psi_{n,a}
+\]
+であり、その係数は $u_{n,a}=\langle\Psi_{n,a},g_N\rangle$ で得られる。
+元の連続関数 $g$ から初期係数を作る場合も、同じ射影を使う。
+ただし、時間発展後のGalerkin解が常に真のPDE解の射影と一致するとは限らない。
+
+電位を式\eqref{eq:poisson}から消去して、摂動の右辺を $\mathcal G[g]$ とまとめれば、Galerkin条件は
+\[
+\boxed{\dot u_{n,a}=\langle\Psi_{n,a},\mathcal G[g_N]\rangle}
+\]
+である。$N_F=1,N_H=2$ なら保持する係数は $d=3\times3=9$ 個となる。
+これは9個の複素係数の表現であり、実数の分布を表す共役対称性などを考えると、全てが独立な複素自由度ではない。
+以下では式\eqref{eq:g}の五つの項を順に射影する。
+
+\subsection{自由輸送の射影：同じ波数の隣接Hermite次数を結ぶ}
+$\partial_x\psi_m=\ii k_m\psi_m$ を使うと
+\[
+-v\partial_xg_N=-\sum_{m,b}\ii k_m u_{m,b}\psi_m(vH_b)
+\]
+となる。Fourierの直交性は $m=n$ だけを残し、Hermiteの漸化式は
+\[
+\langle H_a,vH_b\rangle_{w_1}
+=\sqrt{b+1}\delta_{a,b+1}+\sqrt b\delta_{a,b-1}
+\]
+を与える。出力側の次数 $a$ で整理すると
+\[
+\boxed{\left.\dot u_{n,a}\right|_{\mathrm{transport}}
+=-\ii k_n\left(\sqrt{a+1}u_{n,a+1}+\sqrt a u_{n,a-1}\right)}.
+\]
+自由輸送はHermite次数を一つ上下に結合するが、Fourier波数 $n$ は変えない。
+図\ref{fig:hermite-coupling}の速度乗算の結合が、ここでは $-\ii k_n$ を掛けた形で現れる。
+
+\subsection{線形電場作用の射影：密度から一次モーメントへ}
+直交性から $\int w_1H_a\,\dd v=\delta_{a0}$ なので、密度摂動は
+\[
+\rho(x,t)=\int w_1g_N\,\dd v=\sum_nu_{n,0}(t)\psi_n(x)
+\]
+となる。遮蔽Poisson方程式の各Fourier係数について
+\[
+(-k_n^2-\tau)\phi_n=-u_{n,0},\qquad
+\phi_n=\frac{u_{n,0}}{\kappa_n},\quad\kappa_n=k_n^2+\tau
+\]
+を得る。$v=H_1(v)$ より
+\[
+-v\partial_x\phi=-\sum_n\ii k_n\frac{u_{n,0}}{\kappa_n}\psi_nH_1
+\]
+なので、
+\[
+\boxed{\left.\dot u_{n,a}\right|_{\mathrm{field}}
+=-\ii\frac{k_n}{\kappa_n}u_{n,0}\delta_{a1}}.
+\]
+これは密度成分 $u_{n,0}$ が、電場を介して速度の一次モーメントに関係する成分 $u_{n,1}$ へ作用する結合である。
+ここでもFourier波数は変わらない。
+
+\subsection{二つの非線形項の射影：次数の相殺と波数の和}
+二次項を $(\partial_x\phi)(-v+\partial_v)g_N$ とまとめ、式\eqref{eq:hermitecancel}を使うと
+\begin{align*}
+\partial_x\phi&=\sum_{n'}\ii k_{n'}\frac{u_{n',0}}{\kappa_{n'}}\psi_{n'},\\
+(-v+\partial_v)g_N&=-\sum_{n'',b}\sqrt{b+1}\,u_{n'',b}\psi_{n''}H_{b+1}.
+\end{align*}
+速度方向の射影では $a=b+1$ だけが残り、下向きの結合は相殺される。
+一方、空間方向の積は
+\[
+\boxed{\psi_{n'}\psi_{n''}=\frac1{\sqrt L}\psi_{n'+n''}}
+\]
+なので、射影後の波数は $n=n'+n''$ となる。
+この二つを合わせると $a\geq1$ について
+\[
+\boxed{\left.\dot u_{n,a}\right|_{\mathrm{nonlinear}}
+=-\frac{\ii\sqrt a}{\sqrt L}
+\sum_{\substack{n'+n''=n\\|n'|,|n''|\leq N_F}}
+\frac{k_{n'}}{\kappa_{n'}}u_{n',0}u_{n'',a-1}}
+\]
+を得る。$a=0$ では寄与はゼロとする。
+係数同士の積 $u_{n',0}u_{n'',a-1}$ が、Galerkin系に残る二次非線形性である。
+$n'=1,n''=1$ から $n=2$ が生じるように、新しいFourier波数を生成できる。
+ただし、出力波数が保持範囲に入る場合だけ、その成分を有限ODEに残す。
+
+\subsection{Krook緩和の射影と全体の方程式}
+最後に緩和項は基底の直交性だけで
+\[
+\left.\dot u_{n,a}\right|_{\mathrm{collision}}
+=\langle\Psi_{n,a},-\nuu g_N\rangle=-\nuu u_{n,a}
+\]
+となる。
+式\eqref{eq:g}を基底に射影すると
+\begin{align}
+\dot u_{n,a}={}&-\ii k_n\bigl(\sqrt{a+1}u_{n,a+1}+\sqrt a u_{n,a-1}\bigr)
+-\ii\frac{k_n}{\kappa_n}\delta_{a,1}u_{n,0}-\nuu u_{n,a}\notag\\
+&-\frac{\ii\sqrt a}{\sqrt L}
+\sum_{\substack{n'+n''=n\\|n'|,|n''|\leq N_F}}
+\frac{k_{n'}}{\kappa_{n'}}u_{n',0}u_{n'',a-1}.
+\label{eq:galerkin}
+\end{align}
+$a=0$ では最後の項をゼロとし、境界外の係数もゼロとする。
+Fourier和が範囲外なら、その寄与を捨てる。端から反対側への折り返しは行わない。
+この式には空間微分 $\partial_x$ も速度微分 $\partial_v$ も残っておらず、有限個の係数の積・和と時間微分だけがある。
+
+これは閉じたGalerkin射影であり、添字を剰余で計算する離散畳み込みとは異なる。
+
+係数をまとめれば
+\begin{equation}
+\boxed{\dot\uu=F_1\uu+F_2(\uu\otimes\uu)},\quad
+F_1\in\mathbb C^{d\times d},\quad F_2\in\mathbb C^{d\times d^2}.
+\label{eq:quadratic}
+\end{equation}
+例えば $N_H=2$ の各波数の線形ブロックは
+\begin{equation}
+F_{1,n}=-\nuu I-\ii k_n
+\begin{pmatrix}
+0&1&0\\
+1+1/\kappa_n&0&\sqrt2\\
+0&\sqrt2&0
+\end{pmatrix}.
+\label{eq:block}
+\end{equation}
+密度から $a=1$ への結合だけに電位の線形応答が加わるため、この行列は一般に対称ではない。
+固定波数の状態を $\uu_n=(u_{n,0},u_{n,1},u_{n,2})^{\mathsf T}$ とすると、非線形項を省いた各行は
+\begin{align*}
+\dot u_{n,0}&=-\ii k_nu_{n,1}-\nuu u_{n,0},\\
+\dot u_{n,1}&=-\ii k_n\left[\left(1+\frac1{\kappa_n}\right)u_{n,0}
++\sqrt2u_{n,2}\right]-\nuu u_{n,1},\\
+\dot u_{n,2}&=-\ii k_n\sqrt2u_{n,1}-\nuu u_{n,2}
+\end{align*}
+である。密度、運動量、速度分散に関係する成分が互いに作用する構造を読み取れる。
+この線形行列は波数ごとにブロック対角となり、異なるFourier波数の結合は二次作用に現れる。
+
+二次行列の非ゼロ要素は、$n=n'+n''$、$a\geq1$ に対して
+\begin{equation}
+(F_2)_{\operatorname{idx}(n,a),\,\operatorname{idx}(n',0)d+\operatorname{idx}(n'',a-1)}
+=-\frac{\ii\sqrt a\,k_{n'}}{\sqrt L\,\kappa_{n'}}.
+\end{equation}
+$F_2$ は二つの入力を区別する表現である。入力を交換した同じ係数を機械的に追加すると、二重計数になる。
+
+\subsection{係数ベクトルからCarleman階層へ}
+例えば $N_F=1,N_H=2$ では、係数を
+\[
+\uu(t)=\bigl(u_{-1,0},u_{-1,1},u_{-1,2},
+u_{0,0},u_{0,1},u_{0,2},u_{1,0},u_{1,1},u_{1,2}\bigr)^{\mathsf T}
+\]
+という9成分のベクトルにまとめる。
+式\eqref{eq:quadratic}の $F_1$ は自由輸送・線形電場作用・Krook緩和、$F_2$ は電場と分布摂動の二次相互作用を表す。
+未知量が関数 $g$ から有限個の係数 $\uu$ になっても、二次非線形性は残っている。
+さらにLyapunov変換と振幅規格化を施し、Carleman階層を有限次数で切断すると
+\[
+\boxed{\dot{\bm z}=A_C\bm z}
+\]
+という高次元の線形ODEを得る。
+Fourier--Hermite展開がPDEから二次ODEへの変換、Carleman線形化が二次ODEから線形階層への変換を担い、これらが量子アルゴリズムへ接続する基盤となる。
+有限のFourier・Hermite切断と有限のCarleman切断は、それぞれ異なる近似である。
+
+\subsection{具体例：基本波から第2高調波が生じる}
+初期状態 $g(x,v,0)=A\cos(k_1x)$ は速度に依存しない密度摂動であり、初期係数は
+\[
+u_{1,0}(0)=u_{-1,0}(0)=\frac{A\sqrt L}{2}
+\]
+だけが非ゼロである。
+$N_F\geq2$、$N_H\geq1$ の場合、$n=2,a=1$ の非線形和には初期に $(n',n'')=(1,1)$ だけが寄与するので
+\[
+\boxed{\dot u_{2,1}(0)=-\frac{\ii k_1}{\sqrt L\kappa_1}
+\left(\frac{A\sqrt L}{2}\right)^2
+=-\frac{\ii k_1A^2\sqrt L}{4\kappa_1}}
+\]
+を得る。初期生成率は $A^2$ に比例し、$n=-2$ 側は複素共役となる。
+最初に生成されるのはHermite次数1の成分であり、密度の第2高調波 $u_{2,0}$ の初期微分はゼロである。
+
+\begin{figure}[htbp]
+\centering
+\input{figures/nonlinear_mode_coupling.tex}
+\caption{二次の電場作用によるモード結合の例。電位を作る密度成分と摂動成分の積が、新しい波数と一つ上のHermite次数を生む。共役側では $(-1)+(-1)=-2$ となる。}
+\label{fig:nonlinear-mode-coupling}
+\end{figure}
+
+線形系では各波数が閉じているため、初期にゼロの $n=\pm2$ は生成しない。
+非線形系との差を確認するには少なくとも $N_F\geq2$ が必要であり、保存実験の $N_F=1$ ではこの生成先が射影で捨てられる。
+第8章では、この解析式を使った高調波生成の検証を次の優先実験として挙げている。
+
+\begin{exercise}[射影係数の確認]
+初期密度摂動 $g(x,v,0)=A\cos(k_1x)$ のFourier係数と、$\dot u_{2,1}(0)$ を直接の射影計算で確かめよ。
+自由輸送の射影で、入力次数 $b=a+1$ と $b=a-1$ がそれぞれ出力係数にどの係数で寄与するかを確認せよ。
+また、非線形項の $L^{-1/2}$ がFourier基底の積から生じることを、空間内積を直接積分して確かめよ。
+\end{exercise}
+
+\subsection{有限射影で捨てるものと検証の順序}
+元の分布は一般に無限個の基底係数を必要とするため、有限化によって表\ref{tab:galerkin-errors}の制約が生じる。
+時間積分は射影そのものとは別の段階であり、その誤差も区別する。
+\begin{table}[htbp]
+\centering\small
+\caption{有限Galerkin系と数値積分による主な制約。}
+\label{tab:galerkin-errors}
+\begin{tabularx}{\textwidth}{lX}
+\toprule 原因 & 表現できない構造・生じる誤差 \\\midrule
+Fourier打ち切り & 高波数の空間構造を保持できない。\\
+Hermite打ち切り & 細かな速度分布や進行した位相混合を十分に表せない。\\
+非線形項の射影 & 保持範囲外へ出るモード結合を捨てる。\\
+時間積分 & 有限ODEを数値的に解く際に別の誤差が加わる。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Galerkin射影でまず確認すべきなのは、構成した $F_1,F_2$ が保持基底上で元の作用を正しく表すことである。
+線形系で波数が混ざらないこと、二次項で解析式どおりに高調波が生成すること、実数分布の共役対称性が保たれることを調べる。
+その上で $N_F,N_H$ を増やし、同じ物理的初期条件に対する観測量が収束するか確認する。
+係数の式が正しいことと、有限解像度が対象現象に十分であることは別の検証である。
+
+\begin{notebox}
+Galerkin法は、PDEを保持基底上の有限ODEへ変えるが、二次非線形性は残す。
+Lyapunov変換は、その有限ODEの座標を変え、散逸性と収束条件を評価しやすくする。
+例えば本系では $P_{(n,a),(n,a)}=1+\delta_{a0}/\kappa_n$ により
+$F_1^\dagger P+PF_1=-2\nuu P$ を得る。
+Carleman線形化は、さらにテンソル階層へ埋め込むことで線形系を作り、有限次数で切断する。
+この三つの操作の目的と近似誤差を分けて考える必要がある。
+\end{notebox}
+
+\section{速度方向にもFourier展開を使えるか}
+速度方向をFourier基底で表現する方法もある。
+Hermite基底を選ぶ理由は、本モデルの無限速度領域とGaussian平衡に適合し、低次モーメントや速度演算子を簡単に扱えるためである。
+表\ref{tab:velocity-bases}では主に周期区間上のFourier級数と比較する。
+
+\begin{table}[htbp]
+\centering\small
+\caption{速度方向のFourier表現とHermite表現。}
+\label{tab:velocity-bases}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule 比較項目 & 速度方向のFourier表現 & 本書のHermite展開 \\\midrule
+適した領域 & 級数は周期的な速度区間。 & 無限速度領域とGaussian重み。\\
+Maxwell分布 & 表現できるが、Maxwell重みで直交する基底ではない。 & 平衡のGaussian重みで直交する。\\
+速度微分 & 速度波数との掛け算。 & 隣接する下位Hermite次数への結合。\\
+速度 $v$ の掛け算 & 級数では一般にモード間結合。連続Fourier変換では波数微分に対応する。 & 隣接する上下Hermite次数への結合。\\
+物理モーメント & 係数からの別途の計算が必要になりやすい。 & 低次係数から直接取り出せる。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+連続Fourier変換は無限速度領域でも定義できるので、Fourier表現が無限領域を扱えないわけではない。
+本書の選択はMaxwell重みと演算子構造への適合性によるもので、あらゆる問題でHermite基底が優れるという主張ではない。
+位相混合により速度構造が細かくなると高次Hermite成分が必要になり、少数係数だけで常に高精度になるわけでもない。
+Hermite展開は非線形性を消さず、明示的な二次作用 $F_2$ として整理してCarleman線形化へ渡す役割を持つ。
+
+\section{NumPy/SciPyでHermite多項式を評価する}
+SciPyの \codeinline{eval_hermitenorm} は、正規化前の確率論型Hermite多項式 $\mathrm{He}_a$ を計算する。
+関数名の \codeinline{norm} は $\sqrt{a!}$ で規格化済みという意味ではないため、本書の $H_a$ を得るにはその係数で割る。
+低次数の計算例は次のとおりである。
+\begin{lstlisting}[language=Python]
+import numpy as np
+from scipy.special import eval_hermitenorm, factorial
+
+
+def H(a, v):
+    return eval_hermitenorm(a, v) / np.sqrt(factorial(a))
+
+
+v = np.linspace(-3, 3, 100)
+curves = [H(a, v) for a in range(4)]
+for a in range(4):
+    print(f"H_{a}(0.5) =", H(a, 0.5))
+\end{lstlisting}
+$v=0.5$ での値は順に約 $1$、$0.5$、$-0.530330$、$-0.561341$ である。
+これは基底の描画や分布の再構成に使える例であり、現行のODE構築では多項式を速度点ごとに評価せず、上述の $\sqrt a$ などの結合係数を直接行列へ入れている。
+高次数の評価では階乗の大きさや浮動小数点数の範囲にも注意が必要になる。

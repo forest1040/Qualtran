@@ -1,0 +1,12 @@
+% One-dimensional normalized Maxwell equilibrium (analytic curve).
+\begin{tikzpicture}
+\begin{axis}[
+ width=.86\textwidth,height=5.8cm,
+ xmin=-3,xmax=3,ymin=0,ymax=.45,
+ xlabel={無次元速度 $v$},ylabel={平衡分布 $w_1(v)$},
+ xtick={-3,-2,-1,0,1,2,3},ytick={0,.1,.2,.3,.4},
+ grid=both,minor tick num=1,
+ tick label style={font=\small},label style={font=\small}]
+\addplot[blue!70!black,thick,domain=-3:3,samples=121]{exp(-x^2/2)/sqrt(2*pi)};
+\end{axis}
+\end{tikzpicture}

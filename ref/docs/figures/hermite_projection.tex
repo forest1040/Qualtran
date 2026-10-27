@@ -1,0 +1,18 @@
+\begin{tikzpicture}[>=Stealth,
+ stage/.style={draw,rounded corners,align=center,text width=10.8cm,minimum height=10mm},
+ component/.style={draw,rounded corners,align=center,text width=2.7cm,minimum height=13mm},
+ every node/.style={font=\small}]
+\node[stage] (function) at (0,0) {速度の連続関数 $g(v,t)$};
+\node[stage] (projection) at (0,-1.4) {Gaussian重み付き射影：$a_j(t)=\int_{\mathbb R}w_1(v)g(v,t)H_j(v)\,\dd v$};
+\node[component] (density) at (-3.7,-3) {$a_0(t)$\\密度の摂動成分};
+\node[component] (flow) at (0,-3) {$a_1(t)$\\運動量・流速に関係};
+\node[component] (variance) at (3.7,-3) {$a_2(t)$\\速度分散に関係};
+\node[stage] (vector) at (0,-4.6) {時間依存の係数ベクトル $\bm a(t)=(a_0,a_1,a_2)^{\mathsf T}$\\有限個の変数のODEを解く（$N_H=2$ の例）};
+\draw[->] (function)--(projection);
+\draw[->] (projection.south)--(density.north);
+\draw[->] (projection.south)--(flow.north);
+\draw[->] (projection.south)--(variance.north);
+\draw[->] (density.south)--(vector.north);
+\draw[->] (flow.south)--(vector.north);
+\draw[->] (variance.south)--(vector.north);
+\end{tikzpicture}

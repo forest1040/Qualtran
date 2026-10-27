@@ -1,0 +1,14 @@
+\begin{tikzpicture}[>=Stealth,every node/.style={font=\small}]
+\draw[thick,gray] (-1,0)--(8,0) node[below left] {保持する基底空間};
+\coordinate (origin) at (0,0);
+\coordinate (action) at (5,2.8);
+\coordinate (projected) at (5,0);
+\draw[->,blue!70!black,very thick] (origin)--(action)
+ node[midway,above left] {$\mathcal L[g_N]$};
+\draw[->,green!40!black,very thick] (origin)--(projected)
+ node[midway,below] {$\partial_tg_N=\Pi_N\mathcal L[g_N]$};
+\draw[->,red!70!black,thick] (action)--(projected)
+ node[midway,right] {$R$（基底空間に直交）};
+\draw (4.7,0)--(4.7,.3)--(5,.3);
+\fill (origin) circle (1.5pt);
+\end{tikzpicture}

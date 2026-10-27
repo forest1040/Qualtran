@@ -1,0 +1,261 @@
+\chapter{自由エネルギーに合わせたLyapunov変換}
+\begin{chaptergoal}
+\cgitem 固有値と対数ノルムの違いを理解する。\\
+\cgitem 密度モードを重くする $P$ が散逸性を示す理由を確認する。\\
+\cgitem 線形系の減衰等式と非線形系の評価を分ける。
+\end{chaptergoal}
+
+\section{Carleman収束の保証に向けて安定性を見える形にする}
+Galerkin法で得られた二次ODE
+\[
+\dot\uu=F_1\uu+F_2(\uu\otimes\uu)
+\]
+では、$F_1$ が自由輸送・線形電場作用・Krook緩和、$F_2$ が電場と分布摂動の非線形相互作用を表す。
+Carleman線形化はこの系を高次テンソルの階層へ埋め込むが、有限次数で切断した近似が、次数を増やすだけで必ず元の解へ収束するとは限らない。
+その保証には、線形部分の減衰と非線形作用による増幅の上界を比較する必要がある。
+
+本論文でLyapunov変換を行う主な理由は、もともと線形作用に備わる安定性を、ノルムを使って明確に評価し、Carleman打ち切りの収束条件を構成することである。
+変換が元の方程式へ新たな減衰や制御を加えるわけではない。
+同じ物理的な時間発展を、安定性が見える座標・ノルムで測り直す操作である。
+ただし、この変換だけで非線形近似の収束が保証されるわけではなく、初期振幅などの条件も必要になる。
+
+\section{なぜ固有値だけでは足りないか}
+非線形項を除いた線形系は
+\[
+\dot\uu=F_1\uu,\qquad \uu(t)=\ee^{tF_1}\uu(0)
+\]
+と解ける。有限次元では $F_1$ の全固有値の実部が負なら長時間で解はゼロへ近づく。
+しかし、そのことからユークリッドノルムが全時刻で単調減少するとは限らない。
+非正規行列では固有ベクトルが直交せず、一時的な増幅が起こりうる。
+ノルムの瞬間的な増加率を支配するのは、Hermite部分の最大固有値
+\begin{equation}
+\mu_2(F_1)=\lambda_{\max}\left(\frac{F_1+F_1^\dagger}{2}\right)
+\label{eq:lognorm}
+\end{equation}
+である。「対数ノルム」は $\log\normtwo{F_1}$ の意味ではない。
+実際、
+\[
+\frac12\frac{\dd}{\dd t}\normtwo{\uu}^2
+=\operatorname{Re}(\uu^\dagger F_1\uu)
+\leq\mu_2(F_1)\normtwo{\uu}^2
+\]
+この関係は、積の微分を展開すると
+\begin{align*}
+\frac{\dd}{\dd t}\normtwo{\uu}^2
+&=\dot\uu^\dagger\uu+\uu^\dagger\dot\uu\\
+&=\uu^\dagger(F_1^\dagger+F_1)\uu
+\leq2\mu_2(F_1)\normtwo{\uu}^2
+\end{align*}
+ということである。微分不等式を積分すれば
+\[
+\boxed{\normtwo{\uu(t)}\leq\ee^{\mu_2(F_1)t}\normtwo{\uu(0)}}
+\]
+を得る。スカラー系 $\dot x=-\gamma x$、$\gamma>0$ における
+$|x(t)|=|x(0)|\ee^{-\gamma t}$ を、多変数の作用に対する上界へ拡張した形である。
+\begin{table}[htbp]
+\centering\small
+\caption{線形系に対するユークリッド対数ノルムの読み方。}
+\begin{tabularx}{\textwidth}{lX}
+\toprule 対数ノルム & 保証・解釈 \\\midrule
+$\mu_2(F_1)<0$ & 全ての初期方向で、ノルムの指数減衰を保証する。\\
+$\mu_2(F_1)=0$ & ノルムが増えないことを保証するが、原点への収束までは示さない。\\
+$\mu_2(F_1)>0$ & 一時的増幅がありうる。長時間で不安定とは限らない。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+従って $\mu_2(F_1)<0$ ならユークリッドノルムでの一様な収縮を保証できる。
+一方、$\mu_2(F_1)>0$ なら、Hermite部分の最大固有ベクトルの方向では初期のノルム増加率が正となる。
+全ての初期状態が増幅するという意味ではなく、単調減衰を全方向に保証できないということである。
+
+本プロジェクトの保存済み1D1V実験（$\nuu=0.2$）では、変換前の $\mu_2(F_1)=+0.05$ に対し、変換後は $\mu_2(\widetilde F_1)=-0.20$ である。
+これは同じ線形系でも、元のユークリッドノルムでは見えなかった一様減衰が、変換後のユークリッドノルムで見えることを示す。
+数値の詳細は第6章に示す。
+
+\section{密度成分を重くする二次形式}
+プラズマの自由エネルギーに対応する行列として
+\begin{equation}
+P_{(n,a),(n,a)}=1+\frac{\delta_{a,0}}{\kappa_n},\qquad
+\mathcal F(\uu)=\frac12\uu^\dagger P\uu
+\label{eq:pdef}
+\end{equation}
+を用いる。$\kappa_n>0$ なので $P$ は正定値である。
+第1項は分布摂動の二乗ノルム、第2項は電位との結合に対応する密度成分の補正と読める。
+ここでの $\mathcal F$ は二次自由エネルギーであり、後述する量子出力の運動エネルギーモーメントとは別の量である。
+
+なぜ通常のノルムで構造が見えにくいのかを、$N_H=2$ の式\eqref{eq:block}で確認する。
+$p_n=1+1/\kappa_n$ と置けば、共通の因子 $-\ii k_n$ を除いた結合は、$u_{n,0}$ から $u_{n,1}$ へは $p_n$、逆方向へは1である。
+この非対称性に合わせ、密度成分 $a=0$ に重み $p_n$、$a\geq1$ の成分には重み1を与える。
+
+\begin{figure}[htbp]
+\centering
+\input{figures/lyapunov_coupling.tex}
+\caption{密度成分と一次速度成分の結合。共通因子 $-\ii k_n$ を省いた係数を示す。密度成分を $\sqrt{p_n}$ 倍した座標では両方向の係数が一致する。}
+\label{fig:lyapunov-coupling}
+\end{figure}
+
+式\eqref{eq:block}の移流・電場部分を $-\ii k_nB_n$ と書く。
+密度成分の重み $p_n=1+1/\kappa_n$ に対し、$P_n=\operatorname{diag}(p_n,1,1)$ なら
+\[
+P_nB_n=
+\begin{pmatrix}0&p_n&0\\p_n&0&\sqrt2\\0&\sqrt2&0\end{pmatrix}
+=B_n^{\mathsf T}P_n.
+\]
+したがってこの部分は $P$ 内積では反Hermiteとなり、衝突項だけが二次形式を減らす。
+一般の $N_H$ でも同じ隣接結合から
+\begin{equation}
+\boxed{F_1^\dagger P+PF_1=-2\nuu P}
+\label{eq:lyapeq}
+\end{equation}
+を得る。これは数値的に未知の $P$ を探索した結果ではなく、モデルの構造に基づく具体的な $P$ の恒等式である。
+
+\section{座標変換による散逸性の表示}
+$S=P^{1/2}$ とおき、$\tu=S\uu$ とする。
+すると
+\begin{align}
+\dot\tu&=\widetilde F_1\tu+\widetilde F_2(\tu\otimes\tu),\\
+\widetilde F_1&=SF_1S^{-1},\qquad
+\widetilde F_2=SF_2(S^{-1}\otimes S^{-1}).
+\label{eq:transform}
+\end{align}
+$P$ は対角なので平方根は成分ごとに求められる。
+式\eqref{eq:lyapeq}の左右に $S^{-1}$ を掛けると
+\[
+\widetilde F_1^\dagger+\widetilde F_1=-2\nuu I,
+\qquad \boxed{\mu_2(\widetilde F_1)=-\nuu}.
+\]
+例えば式\eqref{eq:block}の変換後のブロックは
+\[
+\widetilde F_{1,n}=-\nuu I-\ii k_n
+\begin{pmatrix}0&\sqrt{p_n}&0\\\sqrt{p_n}&0&\sqrt2\\0&\sqrt2&0\end{pmatrix}.
+\]
+線形部分は一様減衰とユニタリな回転の和になり、散逸の強さを直接読める。
+固有値は相似変換で変わらないが、ノルムの測り方が変わる。
+
+\subsection{一様散逸と反Hermite作用への分解}
+$K=\widetilde F_1+\nuu I$ と置くと
+\[
+\boxed{\widetilde F_1=-\nuu I+K,\qquad K^\dagger=-K}
+\]
+となる。$K$ は反Hermite行列なので $\ee^{tK}$ はユニタリである。
+\begin{table}[htbp]
+\centering\small
+\caption{変換後の線形作用の二つの成分。}
+\begin{tabularx}{\textwidth}{llX}
+\toprule 成分 & 性質 & ノルムへの作用 \\\midrule
+$-\nuu I$ & 一様散逸 & 全ての方向を同じ割合で減衰させる。\\
+$K$ & 反Hermite & 状態をユニタリに変化させ、ノルムを保つ。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+$-\nuu I$ は $K$ と可換なので、線形系の解は
+\[
+\tu(t)=\ee^{-\nuu t}\ee^{tK}\tu(0)
+\]
+である。従って
+\[
+\frac{\dd}{\dd t}\normtwo{\tu}^2=-2\nuu\normtwo{\tu}^2,\qquad
+\boxed{\normtwo{\tu(t)}=\ee^{-\nuu t}\normtwo{\tu(0)}}
+\]
+が厳密に成り立つ。
+元の座標でも $\|\uu\|_P=(\uu^\dagger P\uu)^{1/2}$ と定義すれば、$\|\uu(t)\|_P$ が同じ割合で減衰する。
+Lyapunov変換は、この $P$-ノルムによる記述を通常のユークリッドノルムへ移すものである。
+
+
+\section{非線形項が残す三次の寄与}
+線形系では式\eqref{eq:lyapeq}から厳密に
+\begin{equation}
+\frac{\dd\mathcal F}{\dd t}=-2\nuu\mathcal F,
+\qquad \mathcal F(t)=\mathcal F(0)\ee^{-2\nuu t}
+\end{equation}
+が成り立つ。これは
+\[
+\frac{\dd\mathcal F}{\dd t}
+=\frac12\uu^\dagger(F_1^\dagger P+PF_1)\uu
+=-\nuu\uu^\dagger P\uu=-2\nuu\mathcal F
+\]
+と直接確認できる。
+一方、二次非線形系では
+\begin{equation}
+\frac{\dd\mathcal F}{\dd t}
+=-2\nuu\mathcal F+
+\operatorname{Re}\{\tu^\dagger\widetilde F_2(\tu\otimes\tu)\}.
+\label{eq:energycubic}
+\end{equation}
+第2項は状態について三次で、一般に符号一定ではない。
+この項を上から評価して散逸に支配される範囲を求めるのが、次章の $R_P$ の役割である。
+その見通しを先に示すと、$q(t)=\normtwo{\tu(t)}$ に対して $q>0$ のとき
+\[
+\dot q\leq\underbrace{-\nuu q}_{\text{線形散逸}}
++\underbrace{\normtwo{\widetilde F_2}q^2}_{\text{非線形作用の上界}}
+\]
+を得る。初期ノルムで両者を比較した量が
+\[
+R_P=\frac{\normtwo{\widetilde F_2}\normtwo{\tu_0}}{\nuu}
+\]
+であり、$R_P<1$ なら初期ノルム以下の領域が保たれ、
+\[
+q(t)\leq q(0)\ee^{-\nuu(1-R_P)t}
+\]
+と評価できる。次章では不変球と比較方程式によってこの評価を導く。
+この減衰評価により、高次テンソルの大きさを制御する出発点が得られる。
+Carleman全階層の打ち切り保証には、さらにbar座標での規格化や対応する定理の仮定が必要であり、線形部分の散逸性だけで十分とは言えない。
+
+\section{変換なしでも計算できるか}
+Galerkin ODEもCarleman行列も、元の座標のまま構成して数値計算できる。
+可逆な座標変換は物理解を変更せず、線形行列の固有値も変えない。
+同じCarleman次数を用いて初期状態と各ブロックを整合的に変換し、最後に元の座標へ戻せば、厳密演算では同じ近似を得る（第5章参照）。
+
+\begin{table}[htbp]
+\centering\small
+\caption{座標変換で変わることと保たれること。散逸評価は本モデルの線形部分について記す。}
+\begin{tabularx}{\textwidth}{lXX}
+\toprule 比較項目 & 元の座標 & Lyapunov座標 \\\midrule
+非線形ODEの物理解 & 変換して戻した解と同じ。 & 元の座標へ戻せば同じ。\\
+線形行列の固有値 & 相似変換で不変。 & 元の行列と同じ。\\
+ユークリッド対数ノルム & 正になる場合がある。 & $-\nuu$。\\
+安定性の評価 & $P$-ノルムを用いて記述できる。 & ユークリッドノルムで直接記述できる。\\
+収束条件 & rawのユークリッド評価だけでは不十分な場合がある。 & $R_P<1$ などの条件を評価しやすい。\\
+同じ次数の物理座標の近似 & 整合的な変換の下で同等。 & 元の座標へ戻せば同等。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+従って、変換が同じ次数の近似精度を必ず上げるわけではない。
+主な価値は、物理的に適したノルムを同定し、そのノルムで散逸と非線形性を比較して収束条件を証明できることにある。
+数値丸めや条件数の影響は、可逆変換による厳密な同等性とは別に検討する。
+
+\section{拡張研究：正定値行列を選んで保証領域を広げられるか}
+本論文では自由エネルギーに対応する具体的な $P$ を使う。
+より一般には、Hermite正定値行列 $P$ と $\gamma>0$ に対して
+\[
+F_1^\dagger P+PF_1\preceq-2\gamma P
+\]
+を満たす組を探索することが考えられる。
+$\preceq$ はHermite行列の半正定値順序を表す。
+この不等式が成り立てば、変換後の対数ノルムは $\mu_2(P^{1/2}F_1P^{-1/2})\leq-\gamma$ となる。
+固定した $P$ について利用できる最大の減衰率を
+\[
+\gamma(P)=-\lambda_{\max}\left(
+\frac{P^{1/2}F_1P^{-1/2}+P^{-1/2}F_1^\dagger P^{1/2}}2\right)
+\]
+と定義し、$\gamma(P)>0$ の範囲を考える。
+すると候補となる非線形性の指標は
+\[
+\boxed{R_P(P)=
+\frac{\normtwo{P^{1/2}F_2(P^{-1/2}\otimes P^{-1/2})}
+\normtwo{P^{1/2}\uu_0}}{\gamma(P)}}
+\]
+である。$\gamma(P)$ だけを大きくしても、同じ変換で非線形作用や初期ノルムが大きく評価されれば、この比が改善するとは限らない。
+最適化する対象は、散逸率と変換後の非線形性を合わせた比になる。
+また $P$ を正の定数倍しても、分子の二つの因子の倍率が相殺され、この指標は変わらない。
+
+別の形の $P$ により同じ物理的初期状態に対する $R_P(P)$ を小さくできれば、十分条件が適用できる非線形領域を広げられる可能性がある。
+これは本論文や現行NumPy/SciPy実装で実証した結果ではなく、そこから考えられる拡張研究である。
+新しい $P$ の条件数、演算子構成の負荷、高次階層の規格化も含めて、実際に有用な保証になるかを検証する必要がある。
+
+
+\begin{exercise}[変換の意味]
+$S$ が可逆なとき、変換前後の非線形ODE解は $\tu(t)=S\uu(t)$ で対応することを確認せよ。
+対数ノルムが改善したことを「同じ初期値問題の物理解が変わった」と解釈できない理由を述べよ。
+\end{exercise}

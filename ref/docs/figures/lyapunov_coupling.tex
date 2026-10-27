@@ -1,0 +1,17 @@
+\begin{tikzpicture}[>=Stealth,every node/.style={font=\small},
+ component/.style={draw,rounded corners,align=center,text width=2.5cm,minimum height=11mm}]
+\node[anchor=east] at (-1.8,0) {元の座標};
+\node[component] (density) at (0,0) {$u_{n,0}$\\密度成分};
+\node[component] (velocity) at (6,0) {$u_{n,1}$\\一次速度成分};
+\draw[->,blue!70!black] (density.north east) to[bend left=22]
+ node[above] {$p_n=1+1/\kappa_n$} (velocity.north west);
+\draw[->,blue!70!black] (velocity.south west) to[bend left=22]
+ node[below] {$1$} (density.south east);
+\node[anchor=east] at (-1.8,-2.5) {変換後};
+\node[component] (td) at (0,-2.5) {$\tilde u_{n,0}=\sqrt{p_n}u_{n,0}$};
+\node[component] (tv) at (6,-2.5) {$\tilde u_{n,1}=u_{n,1}$};
+\draw[->,red!70!black] (td.north east) to[bend left=22]
+ node[above] {$\sqrt{p_n}$} (tv.north west);
+\draw[->,red!70!black] (tv.south west) to[bend left=22]
+ node[below] {$\sqrt{p_n}$} (td.south east);
+\end{tikzpicture}

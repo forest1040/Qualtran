@@ -1,0 +1,18 @@
+% Analytic curve for pure Krook relaxation; not numerical experiment data.
+\begin{tikzpicture}
+\begin{axis}[
+ width=.86\textwidth,height=6cm,
+ xmin=0,xmax=5,ymin=0,ymax=1.05,
+ xlabel={経過時間 $t/\tau_{\mathrm{relax}}=\nuu t$},
+ ylabel={摂動の比 $g(t)/g(0)$},
+ xtick={0,1,2,3,4,5},ytick={0,.2,.4,.6,.8,1},
+ grid=both,minor tick num=1,
+ tick label style={font=\small},label style={font=\small},
+ legend style={font=\small,at={(.98,.98)},anchor=north east}]
+\addplot[blue!70!black,thick,domain=0:5,samples=101]{exp(-x)};
+\addlegendentry{$\exp(-t/\tau_{\mathrm{relax}})$}
+\addplot[only marks,mark=*,red!70!black] coordinates {(1,0.3678794412)};
+\draw[dashed,gray] (axis cs:1,0)--(axis cs:1,0.3678794412)--(axis cs:0,0.3678794412);
+\node[anchor=south west,font=\small] at (axis cs:1.05,0.38) {$t=\tau_{\mathrm{relax}}$ で約36.8\%};
+\end{axis}
+\end{tikzpicture}

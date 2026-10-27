@@ -1,0 +1,99 @@
+\chapter{再現手順と次の研究課題}
+\begin{chaptergoal}
+\cgitem 各関数と保存ファイルの役割を把握する。\\
+\cgitem 既存結果を保持して数値実験を再現する。\\
+\cgitem 非線形高調波を確認する実験を設計する。
+\end{chaptergoal}
+
+\section{コードと理論の対応}
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{lX}
+\toprule 実装の関数 & 役割 \\\midrule
+\codeinline{build_plasma_1d} & 式\eqref{eq:galerkin}から $F_1,F_2,P$ を作る。\\
+\codeinline{Plasma1D.transformed} & 式\eqref{eq:transform}の演算子を作る。\\
+\codeinline{initial_state_for_r} & 初期テンプレートの振幅を目標 $R_P$ に合わせる。\\
+\codeinline{r_number} & 式\eqref{eq:rp}の値を計算する。\\
+\codeinline{logarithmic_norm} & Hermite部分の最大固有値を計算する。\\
+\codeinline{lyapunov_residual} & Lyapunov等式の相対残差を計算する。\\
+\codeinline{normalize_bar} & 式\eqref{eq:bar}の規格化を行う。\\
+\codeinline{build_carleman_matrix} & 式\eqref{eq:carlemanblocks}の疎ブロックを組む。\\
+\codeinline{solve_nonlinear} & 基準となる有限非線形ODEを積分する。\\
+\codeinline{solve_carleman} & 指数作用で有限Carleman系を解く。\\
+\codeinline{full_embedding_error} & 全階層の誤差を時刻上で集計する。\\
+\bottomrule
+\end{tabularx}
+\end{table}
+$F_1,F_2$ はNumPyの \codeinline{complex128} の密配列、$A_C$ はSciPyのCSR疎行列である。
+$F_2$ のサイズは $d\times d^2$ なので、明示生成だけで $O(d^3)$ のメモリを要する。
+行列の疎性や畳み込み構造を活用する最適化は、参照実装と照合しながら別途進める。
+
+\section{実験の実行と保存物}
+Python 3.11以上と \codeinline{uv} を用い、リポジトリルートで実行する。
+以下は再現用のコマンドであり、本書で全スイープを再実行したことを意味しない。
+\begin{lstlisting}[language=bash]
+uv sync
+uv run python -m unittest -v test_plasma_carleman
+uv run python run_experiment.py \
+  --nf 1 --nh 2 --nu 0.2 --tau 1.0 \
+  --length 6.283185307179586 --tmax 8 --n-time 101 \
+  --orders 1 2 3 4 --r-targets 0.2 0.7 1.2 \
+  --outdir results/reproduction
+\end{lstlisting}
+出力先を別ディレクトリにすれば、本書が参照する既存結果を保持したまま比較できる。
+\sourcefile{HANDOVER.md} によると2026年10月18日に7件の既存テストが成功しているが、その記録と保存された全実験の生成時点は区別する。
+
+\sourcefile{error_by_order.csv} は次数、次元、第1セクター誤差、全階層誤差を持つ。
+\sourcefile{diagnostics.json} はモデル設定、Lyapunov残差、対数ノルム、変換解の一致、エネルギー検査を持つ。
+\sourcefile{energy_timeseries.npz} は時刻と規格化済みエネルギーなどを保存する。
+3枚のPNGはCSVや時系列の可視化である。
+現行の記録だけではライブラリ版、Gitコミット、全ての設定を完全に特定できないため、今後はそれらも同時に保存することが望ましい。
+
+\begin{warningbox}
+現行 \codeinline{solve_carleman()} は入力 \codeinline{times} の先頭・末尾・点数から等間隔の出力時刻を作る。
+非等間隔の内部点は反映されない。
+また指数作用は $\ee^{tA_C}\bm z_0$ の時刻 $t$ を使うため、基準ODEとの比較は本書のように開始時刻を0にする。
+非ゼロ時刻で与えた初期値を扱うには、時間原点の整合性も修正する必要がある。
+\end{warningbox}
+
+\section{P0：第2高調波を確認する}
+最優先の次期課題は、$N_F\geq2,N_H\geq2$ として非線形ODEのみを使い、$g(x,v,0)=A\cos(k_1x)$ からの高調波生成を調べることである。
+この段階では巨大なCarleman行列を作る必要はない。
+初期係数は $u_{\pm1,0}=A\sqrt L/2$、それ以外はゼロにする。
+式\eqref{eq:galerkin}より、
+\begin{equation}
+\boxed{\dot u_{2,1}(0)=-\frac{\ii k_1}{\sqrt L\kappa_1}
+\left(\frac{A\sqrt L}{2}\right)^2
+=-\frac{\ii k_1A^2\sqrt L}{4\kappa_1}.}
+\label{eq:harmonic}
+\end{equation}
+$n=-2$ の微分はその複素共役となる。
+線形系はFourier波数ごとに閉じるので、$F_2=0$ にした対照系では初期にゼロの $n=\pm2$ は生成しない。
+
+観測量として
+\[
+M_n(t)=\left(\sum_{a=0}^{N_H}|u_{n,a}(t)|^2\right)^{1/2}
+\]
+を記録する。小さい時間では $M_2(t)=|\dot u_{2,1}(0)|t+O(t^2)$ となり、初期生成率が $A^2$ に比例する。
+密度の第2高調波 $u_{2,0}$ は初期微分がゼロなので、$a=1$ の生成より遅れて現れる点にも注意する。
+複数振幅で解析式と比較し、共役対称性、ゼロ総質量、時間積分の収束性を検査する。
+これらは今後実装する受け入れ基準であり、既存の成果ではない。
+
+\section{P1：保証と実測収束の差を測る}
+$\nuu,\tau,N_F,N_H$、初期形状と振幅を掃引し、$R_P$ と誤差・エネルギー・計算時間・メモリを記録する。
+実験は二系統に分ける。
+一つは同一 $R_P$ に振幅を合わせ、定理の指標に沿って比較するもの。
+もう一つは物理的な初期振幅を固定し、条件変更による $R_P$ の変化も含めて測るものである。
+$\max|\phi|$ など物理振幅も併記すると、単一のノルム指標だけに依存しない解釈ができる。
+
+誤差を小さくする際は基準ODEの許容誤差も変え、参照解の精度が十分か確認する。
+raw・tilde・bar座標を同じ次数で構成して物理座標へ戻す比較も行えば、実装の相似変換整合性を検証できる。
+
+\section{P2・P3：高次化と物理的検証}
+P2では第5章の正規化済み対称基底を実装し、小規模問題で無圧縮系と解・全階層ノルムを照合する。
+引継書の目標は従来解との相対誤差 $10^{-9}$ 以下と、実測メモリ・時間の比較である。
+行列フリー作用も候補だが、指数作用計算が必要とする随伴作用やtraceの扱いを含めて設計する必要がある。
+
+P3では独立な $x$--$v$ 格子法との比較、$N_F,N_H$ の解像度収束、分布の非負性を確認し、その後に1D2Vや2D2Vなどへの拡張を検討する。
+例えば $N_F=2,N_H=2$ では $d=15$、$N_C=4$ の無圧縮状態は54240成分になる。
+条件を一度に大きくせず、解析可能な生成率や構造保存を基準に拡張することが、次の理論・量子実装を支える。

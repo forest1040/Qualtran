@@ -1,0 +1,10 @@
+\begin{tikzpicture}[>=Stealth,every node/.style={font=\small},
+ stage/.style={draw,rounded corners,align=center,text width=11.3cm,minimum height=14mm}]
+\node[stage] (pde) at (0,0) {非線形PDE：$\partial_tg=\mathcal L[g]+\mathcal Q[g,g]$\\位置・速度に依存する関数};
+\node[stage] (ode) at (0,-2.2) {有限次元の非線形ODE：$\dot\uu=F_1\uu+F_2(\uu\otimes\uu)$\\係数の二次の積が残る};
+\node[stage] (lyapunov) at (0,-4.4) {Lyapunov座標の非線形ODE：$\dot\tu=\widetilde F_1\tu+\widetilde F_2(\tu\otimes\tu)$\\散逸性の評価をしやすくする};
+\node[stage] (carleman) at (0,-6.6) {高次元の線形ODE：$\dot{\bm z}=A_C\bm z$\\高次テンソルを階層変数にして有限次数で打ち切る};
+\draw[->] (pde)--node[right] {Fourier--Hermite展開とGalerkin射影}(ode);
+\draw[->] (ode)--node[right] {Lyapunov変換}(lyapunov);
+\draw[->] (lyapunov)--node[right] {振幅規格化とCarleman線形化・打ち切り}(carleman);
+\end{tikzpicture}
